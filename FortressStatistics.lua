@@ -19,6 +19,7 @@ local DeathLogger = require('DeathLogger')
 local JobLogger = require('JobLogger')
 local InvasionLogger = require('InvasionLogger')
 local BookAnnouncer = require('AnnounceBooks')
+local CitezenLogger = require('LogCitizen')
 -------------------------------------------------------------------------------------------------------------------------------------
 
 eventful.enableEvent(eventful.eventType.ITEM_CREATED, 1)
@@ -83,12 +84,12 @@ local function startWatcher()
     print("Starting DF_LOGGER_SUB watcher...")
     watcherActive = true
 
-    BookAnnouncer.startBookWatcher()
 
     local function tick()
         if not watcherActive then return end
-        lastAnnouncementId = AnnouncementWatcher.watch(lastAnnouncementId)
-        --BookAnnouncer.checkForNewBooks()
+        AnnouncementWatcher.watch()
+        CitezenLogger.watch()
+        BookAnnouncer.checkForNewBooks()
         if watcherActive then
             dfhack.timeout(10, 'ticks', tick)
         end

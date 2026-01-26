@@ -105,6 +105,7 @@ function AnnounceBooks.checkForNewBooks()
     -- Build a set of known titles for fast lookup
     local known_titles = {}
     for _, book in ipairs(known_books) do
+        print("Known book: ")
         known_titles[book.title] = true
     end
     -- Announce any new book whose title is not in known_titles
@@ -171,6 +172,7 @@ function main(command1, command2)
     elseif command1 == 'list' and command2 == "maker" then
         print(AnnounceBooks.countFortressBooks() .. " books found in fortress:")
         AnnounceBooks.printBooksOfFortress("maker")
+    elseif command1 == nil and command2 == nil then
     else
         AnnounceBooks.printHelp()
     end
