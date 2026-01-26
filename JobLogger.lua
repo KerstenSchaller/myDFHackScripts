@@ -1,0 +1,26 @@
+--add the current path to the package path so we can load other local scripts
+local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/?.lua'
+package.path = script_dir .. ';' .. package.path
+
+local LogHandler = require('LogHandler')
+
+local JobLogger = {}
+
+
+function JobLogger.log(job)
+	local job_type = df.job_type[job.job_type] or 'unknown'
+	local job_name = dfhack.job.getName(job) or 'unknown'
+	local job_unit = dfhack.job.getWorker(job)
+	local job_unit_name = job_unit and dfhack.units.getReadableName(job_unit) or 'unknown'
+
+	local msg = string.format(
+		'[JobCompleted],name,"%s",type,"%s",worker,"%s"', 
+		job_name,
+		job_type,
+		job_unit_name
+	)
+
+	LogHandler.write_log(msg)
+end
+
+return JobLogger

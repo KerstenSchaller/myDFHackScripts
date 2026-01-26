@@ -30,16 +30,20 @@ function filterAnnouncement(announcement, exclude_keywords)
     return announcement
 end
 
+AnnouncementWatcher.lastLoggedId = -1
+
 function AnnouncementWatcher.watch()
     local reports = df.global.world.status.reports
 
     if #reports == 0 then 
         return 
-        end
-    if last_announcement_msg == reports[#reports - 1].text  then
-        dfhack.gui.showAnnouncement("Duplicate announcement skipped."..last_announcement_msg..reports[#reports - 1].id, COLOR_WHITE)
+    end
+    if last_announcement_msg == reports[#reports - 1].text or AnnouncementWatcher.lastLoggedId == reports[#reports - 1].id then
+        --dfhack.gui.showAnnouncement("Duplicate announcement skipped."..last_announcement_msg..reports[#reports - 1].id, COLOR_WHITE)
         return -- already logged
     end
+    AnnouncementWatcher.lastLoggedId = reports[#reports - 1].id
+    last_announcement_msg = reports[#reports - 1].text
 
     -- check if announcement contains [Announcement] and skip if  yes
     if string.find(reports[#reports - 1].text, "Announcement")  then
@@ -47,7 +51,6 @@ function AnnouncementWatcher.watch()
     end
     local msg = string.format("[Announcement ],id,%d,text,%s,repeat_count,%d",reports[#reports - 1].id, reports[#reports - 1].text, reports[#reports - 1].repeat_count)
     parseAnnouncements(msg)
-    last_announcement_msg = msg
 end
 
 return AnnouncementWatcher
