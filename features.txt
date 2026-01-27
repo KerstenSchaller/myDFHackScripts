@@ -1,0 +1,51 @@
+Other ideas:
+- timestamps in alert messages
+
+Core ideas:
+wealth:
+	Which dwarves did the most kills or produced the most wealth would be cool things to know.
+	Imported, exported, and created wealth
+Artifacts:
+	retrieved or created artifacts 
+Items:
+	Number of masterworks (not just artifacts), by type 
+	Most used material/material type 
+	If possible, most gathered/produced raw material (that way you can correlate it with the previous, and see if you're actually keeping up with demand or if you're just burning through a reserve and need to go prospecting for more hematite)
+	Tendencies of item production going up or down
+	most valuable created item
+	Amount of food and alcohol consumed would be nice to know
+	
+Combat:
+	A Most Valuable Warrior thing would be cool, highlights of dwarves that had the most impact in battle
+	Sieges
+	Special Creature attacks e.g Forgotten beast, Titan etc
+	
+
+Social:
+	Marriage
+	Murder
+	Death
+	Birth
+	Peope joining fortress
+	Petitions
+	
+	
+Etc:
+	Murders 
+	change in dwarf happiness over time
+	
+
+
+
+
+Extension Ideas:
+Number of events that triggered an unhappy thought (e.g. failure to pray, handling a corpse, drinking water, going hungry).
+Additional relationship stuff. Breakups etc
+Skill progression statistics
+Average bedroom quality
+Most common sources of unhappy thoughts (compile all the unhappy thoughts your dwarves had and group them)
+ common desire/preferences (oh I actually have seven dwarves that love dogs for their fur)
+
+Log ore/gem discoverys special. Some of them more valuable
+Average wealth per dwarf (carried/owned + assigned rooms)?
+I wanna know who drank the most. Who got stuck the most. Most frequent pray-er. Who told the most stories, played the most songs, danced the most jigs. Who complained the most. Who made the most friends. What subject was discussed the most. How many books / most prolific writer. What soldier led the most exercises. What civilization immigrated to my settlement the most. Most prolific traveling band, (like which group held entertainment the most). Biggest dwarf, smallest dwarf, most popular dwarf (is it normally the mayor?), funniest dwarf (most jokes told), biggest snitch (most crimes reported), worst criminal....theres more I might be back.

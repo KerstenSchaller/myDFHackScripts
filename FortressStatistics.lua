@@ -2,9 +2,7 @@ local eventful = require('plugins.eventful')
 local dfhack = require('dfhack')
 
 --reload all scripts
-print("Reloading all DF_LOGGER_SUB scripts...")
-require('script-manager').reload()
-print("Reload complete.")
+
 
 --add the current path to the package path so we can load other local scripts
 local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/'
@@ -13,13 +11,15 @@ package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.
 
 local LogHandler = require('LogHandler')
 local Helper = require('Helper')
-local AnnouncementWatcher = require('AnnouncementWatcher')
+local AnnouncementLogger = require('AnnouncementLogger')
 local ItemLogger = require('ItemLogger')
+
 local DeathLogger = require('DeathLogger')  
 local JobLogger = require('JobLogger')
 local InvasionLogger = require('InvasionLogger')
 local BookAnnouncer = require('AnnounceBooks')
-local CitezenLogger = require('LogCitizen')
+local CitezenLogger = require('CitizenLogger')
+local PetitionLogger = require('PetitionLogger')
 -------------------------------------------------------------------------------------------------------------------------------------
 
 eventful.enableEvent(eventful.eventType.ITEM_CREATED, 1)
@@ -87,9 +87,10 @@ local function startWatcher()
 
     local function tick()
         if not watcherActive then return end
-        AnnouncementWatcher.watch()
+        AnnouncementLogger.watch()
         CitezenLogger.watch()
         BookAnnouncer.checkForNewBooks()
+        PetitionLogger.watch()
         if watcherActive then
             dfhack.timeout(10, 'ticks', tick)
         end
