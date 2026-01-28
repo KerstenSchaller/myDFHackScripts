@@ -5,3 +5,6 @@ package.loaded["Helper"] = nil
 package.loaded["LogHandler"] = nil
 package.loaded["AnnouncementWatcher"] = nil
 package.loaded["PetitionLogger"] = nil
+package.loaded["InvasionLogger"] = nil
+package.loaded["CitizenLogger"] = nil
+package.loaded["test"] = nil

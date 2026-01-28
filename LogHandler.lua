@@ -38,7 +38,6 @@ function LogHandler.write_log(message)
     local datestr = Helper.date()
     message = string.format('%s,%s' ,datestr, message)
     message = dfhack.df2utf(message)
-    --dfhack.gui.showAnnouncement( message, COLOR_WHITE)
     LogHandler.appendToFile(LOG_PATH, message)
 
 end

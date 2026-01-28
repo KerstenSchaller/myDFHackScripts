@@ -8,32 +8,36 @@ local Helper = require('Helper')
 local LogHandler = require('LogHandler')
 
 
-local function printPetitionDetails(petition)
-    Helper.print(petition, "  ")
-end
+
 
 local petitions = df.global.world.agreements.all
 
 local PetitionLogger = {}
 
-function PetitionLogger.watch()
-    Helper.watch(
+local watcher = Helper.watch(
         function()
+
             return df.global.world.agreements.all
         end,
         function(petition)
-            return petition.id
+            local serializedString = ""
+             Helper.parseTable(petition, serializedString)
+            return serializedString
         end,
         function(oldCount, newCount)
-            dfhack.print(string.format("Petition count changed, from %d to %d\n", oldCount, newCount))
+            if oldCount ~= newCount then
+                dfhack.gui.showAnnouncement(string.format("Petition count changed, from %d to %d\n", oldCount, newCount))
+            end
         end,
         function(petition)
-            local serializedString = ""
-            Helper.parseTable(petition, serializedString)
+            local serializedString = Helper.parseTable(petition)
             LogHandler.write_log(serializedString)
             print(serializedString)
         end
     )
+
+function PetitionLogger.watch()
+    watcher()
 end
 
 

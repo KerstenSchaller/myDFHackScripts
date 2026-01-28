@@ -21,19 +21,25 @@ function citizens.getCurrentCitizens()
     return current_citizens
 end
 
-function citizens.watch()
-    Helper.watch(citizens.getCurrentCitizens,
+    local watcher = Helper.watch(citizens.getCurrentCitizens,
         function(unit) 
             return dfhack.translation.translateName(unit.name)
         end,
         function(oldCount, newCount)
-            LogHandler.write_log(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount))
+            if oldCount ~= newCount then
+                dfhack.gui.showAnnouncement(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount), COLOR_WHITE)
+                LogHandler.write_log(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount))
+            end
         end,
         function(unit)
             LogHandler.write_log(string.format("New citizen: id,%d,name,%s,race,%s,", unit.id,
                 dfhack.translation.translateName(unit.name), dfhack.units.getRaceName(unit)))
         end
     )
+
+function citizens.watch()
+    LogHandler.write_log("Starting citizen watcher.")
+    watcher()
 end
 
 

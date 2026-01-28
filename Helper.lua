@@ -4,6 +4,7 @@ local Helper = {}
 
 local dfhack = require('dfhack')
 
+-- Function to get the current date in day, month, year format
 function Helper.date()
     local day = dfhack.world.ReadCurrentDay()
     local month = dfhack.world.ReadCurrentMonth()
@@ -28,14 +29,15 @@ end
 
 
 -- Generalized watcher function
-function Helper.watch(getCurrentList, getKey, logChange, logNew)
+function Helper.watch(getCurrentList, getKey, logChange, logNew, debug)
     local lastCount = 0
     local known_items = {}
 
     return function()
         local current_items = getCurrentList()
         local newCount = #current_items
-        if newCount ~= lastCount then
+        if debug ~= nil then debug(lastCount, newCount) end
+        if newCount ~= lastCount or false then
             logChange(lastCount, newCount)
             local known_keys = {}
             for _, item in ipairs(known_items) do
@@ -67,26 +69,35 @@ end
 
 
 
-
+function Helper.is_number(str)
+    return tonumber(str) ~= nil and tostring(tonumber(str)) == str
+end
 
 -- Helper function to recursively print table contents
 function Helper.parseTable(t, serializedString)
+    serializedString = serializedString or ""
     if type(t) ~= "table" and type(t) ~= "userdata" then
         -- header line
         serializedString = serializedString .. tostring(t) .. ","
-        return
+        return serializedString
     end
     for k, v in pairs(t) do
         if type(v) == "table" or type(v) == "userdata" then
             --print("t: " .. tostring(v))
-            serializedString = serializedString .. tostring(t) .. ","
-            Helper.parseTable(v, serializedString)
+            serializedString = serializedString .. tostring(k) .. ","
+            serializedString = Helper.parseTable(v, serializedString)
         else
             --print("t: " .. tostring(v))
-            serializedString = serializedString .. tostring(k) .. "," .. Helper.resolveEnum(k,v) .. ","
-            print(tostring(k) .. ": " .. Helper.resolveEnum(k,v))
+            --serializedString = serializedString .. tostring(k) .. "," .. Helper.resolveEnum(k,v) .. ","
+            if Helper.is_number(tostring(k)) and v == false then
+                goto continue
+            end
+            serializedString = serializedString .. tostring(k) .. "," .. tostring(v) .. ","
+            ::continue::
+            --print(tostring(k) .. ": " .. Helper.resolveEnum(k,v))
         end
     end
+    return serializedString
 end
 
 -- Helper function to recursively print table contents
@@ -104,7 +115,11 @@ function Helper.print(t, indent)
             Helper.print(v, indent .. "  ")
         else
             --print("t: " .. tostring(v))
+            if Helper.is_number(tostring(k)) and v == false then
+                goto continue
+            end
             print("2 " .. indent .. tostring(k) .. ": " .. Helper.resolveEnum(k,v))
+            ::continue::
         end
     end
 end

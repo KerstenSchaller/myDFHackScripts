@@ -92,7 +92,7 @@ local function startWatcher()
         BookAnnouncer.checkForNewBooks()
         PetitionLogger.watch()
         if watcherActive then
-            dfhack.timeout(10, 'ticks', tick)
+            dfhack.timeout(500, 'ticks', tick)
         end
     end
     tick()
