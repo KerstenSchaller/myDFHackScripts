@@ -30,7 +30,7 @@ local watcher = Helper.watch(
         end,
         function(petition)
             local serializedString = Helper.parseTable(petition)
-            LogHandler.write_log("[PetitionChange]"..serializedString)
+            LogHandler.write_log("[PetitionChange],"..serializedString)
             print(serializedString)
         end,
         function(lastValue, petition2)

@@ -79,16 +79,34 @@ end
 
 -- Helper function to resolve enum values to strings
 function Helper.resolveEnum(k,v)
+    if tostring(k) == nil or tostring(v) == nil then
+        return "error_nil_key_or_value"
+    end
     local d = df[k]
     if d == nil then
         return tostring(v)
     else
+        local dv = d[v]
+        if dv == nil then
+            return "unknown_enum_value"
+        end
         return d[v]..","..string.format("%s%s",tostring(k),"_value")..","..tostring(v)
     end
 
 end
 
-
+function Helper.getIncidentDeathCauseByVictimId(victimId)
+    local incidents = df.global.world.incidents.all
+    for _, incident in ipairs(incidents) do
+        if incident.type == df.incident_type.Death then
+            local death_incident = incident --:df.incident_deathst
+            if death_incident.victim == victimId then
+                return death_incident.death_cause
+            end
+        end
+    end
+    return nil
+end
 
 function Helper.is_number(str)
     return tonumber(str) ~= nil and tostring(tonumber(str)) == str
@@ -128,7 +146,7 @@ function Helper.getValueFromSerializedString(serializedString, key)
 end
 
 -- Helper function to recursively print table contents
-function Helper.print(t, indent)
+function Helper.printTable(t, indent)
     indent = indent or ""
     if type(t) ~= "table" and type(t) ~= "userdata" then
         -- header line
@@ -139,7 +157,7 @@ function Helper.print(t, indent)
         if type(v) == "table" or type(v) == "userdata" then
             --print("t: " .. tostring(v))
             print("1 ".. indent .. tostring(k) .. ":")
-            Helper.print(v, indent .. "  ")
+            Helper.printTable(v, indent .. "  ")
         else
             --print("t: " .. tostring(v))
             if Helper.is_number(tostring(k)) and v == false then

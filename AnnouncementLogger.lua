@@ -49,7 +49,7 @@ function AnnouncementWatcher.watch()
     if string.find(reports[#reports - 1].text, "Announcement")  then
         return
     end
-    local msg = string.format("[Announcement ],id,%d,text,%s,repeat_count,%d",reports[#reports - 1].id, reports[#reports - 1].text, reports[#reports - 1].repeat_count)
+    local msg = string.format("[Announcement],id,%d,text,%s,repeat_count,%d",reports[#reports - 1].id, reports[#reports - 1].text, reports[#reports - 1].repeat_count)
     parseAnnouncements(msg)
 end
 

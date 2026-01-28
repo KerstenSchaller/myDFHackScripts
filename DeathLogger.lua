@@ -8,7 +8,6 @@ local Helper = require('Helper')
 
 local DeathLogger = {}
 
-
 function DeathLogger.log(unit_id)
 	local unit = df.unit.find(unit_id)
 	if not unit then return end
@@ -16,13 +15,14 @@ function DeathLogger.log(unit_id)
 	local unit_race = dfhack.units.getRaceName(unit) or 'unknown'
 	local unit_name = dfhack.units.getVisibleName(unit) or 'unknown'
 	local unit_id_str = tostring(unit_id)
-
+	local unit_death_cause = Helper.resolveEnum("death_type", Helper.getIncidentDeathCauseByVictimId(unit_id))
 	local name = dfhack.units.getReadableName(unit) or 'unknown'
 	local msg = string.format(
-		'[UnitDeath],id,%s,name,"%s",race,"%s"', 
+		'[UnitDeath],id,%s,name,"%s",race,"%s",death_cause,"%s"',
 		unit_id_str,
 		name,
-		unit_race
+		unit_race,
+		unit_death_cause
 	)
 
 	LogHandler.write_log(msg)

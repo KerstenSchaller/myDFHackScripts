@@ -28,11 +28,11 @@ end
         function(oldCount, newCount)
             if oldCount ~= newCount then
                 dfhack.gui.showAnnouncement(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount), COLOR_WHITE)
-                LogHandler.write_log(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount))
+                LogHandler.write_log(string.format("[Citizens],type,countchange,from,%d,to,%d", oldCount, newCount))
             end
         end,
         function(unit)
-            LogHandler.write_log(string.format("New citizen: id,%d,name,%s,race,%s,", unit.id,
+            LogHandler.write_log(string.format("[Citizens],type,newcitizen,id,%d,name,%s,race,%s,", unit.id,
                 dfhack.translation.translateName(unit.name), dfhack.units.getRaceName(unit)))
         end,
         function(x,z)

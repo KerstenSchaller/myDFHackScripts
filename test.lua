@@ -10,17 +10,38 @@ local Helper = require('Helper')
 --if cond then dfhack.gui.showAnnouncement("Petition change detected") end
 --return cond
 
-
-local petitions = df.global.world.agreements.all
-print("Total petitions: " .. tostring(#petitions))
-local serializedString = ""
-serializedString = Helper.parseTable(petitions[#petitions-1])
-print("Serialized petitions:")
-print(serializedString)
+function getDeathCauses(id)
+    local deathCauses = {}
+    return ""
+end
 
 
-print("--------------------------------------------------")
-local value = Helper.getValueFromSerializedString(serializedString, "petition_not_accepted")
-print("Value for key 'petition_not_accepted': " .. tostring(value))
-print(petitions[#petitions-1])
---Helper.print(petitions)
+goto next
+
+print("number of incidents:", #df.global.world.incidents.all)
+
+for _, incident in ipairs(df.global.world.incidents.all) do
+    if incident.type == df.incident_type.Death then
+        local death_incident = incident --:df.incident_deathst
+        Helper.printTable(death_incident)
+        return
+    end
+end
+
+::next::
+
+local artifacts = df.global.world.artifacts.all
+print("number of items:", #artifacts)
+print("Artifacts:")
+
+for _, artifact in ipairs(artifacts) do
+    --if item.flags.artifact == false then
+        local pos = artifact.item.pos
+        if pos.x ~= -30000 and dfhack.items.getBookTitle(artifact.item) ~= "" then
+            print("x "..pos.x.." y "..pos.y.." z "..pos.z)
+        end
+        
+        --Helper.printTable(artifact)
+    --end
+end
+
