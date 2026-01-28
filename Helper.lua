@@ -29,15 +29,27 @@ end
 
 
 -- Generalized watcher function
-function Helper.watch(getCurrentList, getKey, logChange, logNew, debug)
+function Helper.watch(getCurrentList, getKey, logChange, logNew, secondCondition) 
     local lastCount = 0
+    local lastItemValue = nil
     local known_items = {}
+    local firstCall = true
 
     return function()
+            if firstCall then
+                known_items = getCurrentList()
+                lastCount = #known_items
+                firstCall = false
+                if secondCondition ~= nil then
+                   local _,_,val2 = secondCondition(known_items[#known_items-1],known_items[#known_items-1])
+                   lastItemValue = val2
+                end
+                return lastCount
+            end
         local current_items = getCurrentList()
         local newCount = #current_items
-        if debug ~= nil then debug(lastCount, newCount) end
-        if newCount ~= lastCount or false then
+        -- Check if count of items has changed and log changes
+        if newCount ~= lastCount then
             logChange(lastCount, newCount)
             local known_keys = {}
             for _, item in ipairs(known_items) do
@@ -51,6 +63,15 @@ function Helper.watch(getCurrentList, getKey, logChange, logNew, debug)
             end
             known_items = current_items
             lastCount = newCount
+        end
+        --check if the last item has changed
+        local currentLastItem = current_items[#current_items-1]
+        local cond, value1, value2 = secondCondition(lastItemValue, currentLastItem)
+        if cond then
+            logNew(currentLastItem)
+            dfhack.gui.showAnnouncement("Petition change detected")
+            known_items = current_items
+            lastItemValue = value2
         end
         return newCount
     end
@@ -98,6 +119,12 @@ function Helper.parseTable(t, serializedString)
         end
     end
     return serializedString
+end
+
+function Helper.getValueFromSerializedString(serializedString, key)
+    local pattern = key .. ",(.-),"
+    local value = serializedString:match(pattern)
+    return value
 end
 
 -- Helper function to recursively print table contents

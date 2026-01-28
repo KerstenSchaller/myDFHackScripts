@@ -16,7 +16,6 @@ local PetitionLogger = {}
 
 local watcher = Helper.watch(
         function()
-
             return df.global.world.agreements.all
         end,
         function(petition)
@@ -31,8 +30,16 @@ local watcher = Helper.watch(
         end,
         function(petition)
             local serializedString = Helper.parseTable(petition)
-            LogHandler.write_log(serializedString)
+            LogHandler.write_log("[PetitionChange]"..serializedString)
             print(serializedString)
+        end,
+        function(lastValue, petition2)
+            local serializedString2 = Helper.parseTable(petition2)
+            local value2 = Helper.getValueFromSerializedString(serializedString2, "petition_not_accepted")
+            local cond = (lastValue ~= value2)
+            if cond then dfhack.gui.showAnnouncement("Petition change detected") end
+
+            return cond,lastValue,value2
         end
     )
 
@@ -44,21 +51,12 @@ end
 
 
 
-if true then
-    for id, petition in pairs(petitions) do
-        if petition.flags.petition_not_accepted  then
-            print("------------------------------------------------------")
-            print("------------------------------------------------------")
-            print("------------------------------------------------------")
-            print(string.format("Petition %d not accepted. Full details:", id))
-            printPetitionDetails(petition)
-            print("--- End of petition " .. id .. " ---")
-        end
-    end
 
-end
 
 function PetitionLogger.findEntityById(id)
+    if #df.global.world.entities.all == 0 then
+        return nil
+    end
     for _, entity in pairs(df.global.world.entities.all) do
         if entity.id == id then
             return entity

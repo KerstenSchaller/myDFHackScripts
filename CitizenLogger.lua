@@ -34,11 +34,13 @@ end
         function(unit)
             LogHandler.write_log(string.format("New citizen: id,%d,name,%s,race,%s,", unit.id,
                 dfhack.translation.translateName(unit.name), dfhack.units.getRaceName(unit)))
+        end,
+        function(x,z)
+            return false
         end
     )
 
 function citizens.watch()
-    LogHandler.write_log("Starting citizen watcher.")
     watcher()
 end
 
