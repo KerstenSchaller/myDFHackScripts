@@ -108,6 +108,17 @@ local function shutdownLogging()
     eventful.onUnitDeath[modId] = nil
     eventful.onJobCompleted[modId] = nil
     eventful.onInvasion[modId] = nil
+
+    package.loaded["JobLogger"] = nil
+    package.loaded["ItemLogger"] = nil
+    package.loaded["DeathLogger"] = nil
+    package.loaded["Helper"] = nil
+    package.loaded["LogHandler"] = nil
+    package.loaded["AnnouncementWatcher"] = nil
+    package.loaded["PetitionLogger"] = nil
+    package.loaded["InvasionLogger"] = nil
+    package.loaded["CitizenLogger"] = nil
+
     dfhack.gui.showAnnouncement("DF_LOGGER_SUB shutdown.", COLOR_WHITE)
 end
 

@@ -95,18 +95,7 @@ function Helper.resolveEnum(k,v)
 
 end
 
-function Helper.getIncidentDeathCauseByVictimId(victimId)
-    local incidents = df.global.world.incidents.all
-    for _, incident in ipairs(incidents) do
-        if incident.type == df.incident_type.Death then
-            local death_incident = incident --:df.incident_deathst
-            if death_incident.victim == victimId then
-                return death_incident.death_cause
-            end
-        end
-    end
-    return nil
-end
+
 
 function Helper.is_number(str)
     return tonumber(str) ~= nil and tostring(tonumber(str)) == str
@@ -169,5 +158,77 @@ function Helper.printTable(t, indent)
     end
 end
 
+function Helper.getUnitById(id)
+    for _, unit in ipairs(df.global.world.units.active) do
+        if unit.id == id then
+            return unit
+        end
+    end
+    return nil
+end
+
+function Helper.getUnitNameById(id)
+    local unit = Helper.getUnitById(id)
+    if unit then
+        local unitname = dfhack.translation.translateName(unit.name)
+        if unitname == "" then
+            unitname = dfhack.units.getReadableName(unit)
+        end
+        return unitname
+    else
+        return "unknown_unit"
+    end
+end
+
+function Helper.isUnitCitizen(unitId)
+    for _, unit in ipairs(df.global.world.units.active) do
+        if unit.id == unitId then
+            if dfhack.units.isCitizen(unit) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function Helper.getNameOfKillerByVictimId(victimId)
+    local incidents = df.global.world.incidents.all
+    for _, incident in ipairs(incidents) do
+        if incident.type == df.incident_type.Death and incident.victim == victimId then
+            local death_incident = incident --:df.incident_deathst
+            local killerId = death_incident.criminal
+            return Helper.getUnitNameById(killerId)
+        end
+    end
+    return "unknown_killer"
+end
+
+function Helper.getKillerIdbyVictimId(victimId)
+    local incidents = df.global.world.incidents.all
+    for _, incident in ipairs(incidents) do
+        if incident.type == df.incident_type.Death then
+            local death_incident = incident --:df.incident_deathst
+            if death_incident.victim == victimId then
+                return death_incident.criminal
+            end
+        end
+    end
+    return nil
+end
+
+function Helper.getIncidentDeathCauseByVictimId(victimId)
+    local incidents = df.global.world.incidents.all
+    for _, incident in ipairs(incidents) do
+        if incident.type == df.incident_type.Death then
+            local death_incident = incident --:df.incident_deathst
+            if death_incident.victim == victimId then
+                return death_incident.death_cause
+            end
+        end
+    end
+    return nil
+end
+
 return Helper
+
 

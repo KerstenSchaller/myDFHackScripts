@@ -16,16 +16,22 @@ function DeathLogger.log(unit_id)
 	local unit_name = dfhack.units.getVisibleName(unit) or 'unknown'
 	local unit_id_str = tostring(unit_id)
 	local unit_death_cause = Helper.resolveEnum("death_type", Helper.getIncidentDeathCauseByVictimId(unit_id))
+	local killer = Helper.getKillerIdbyVictimId(unit_id)
+	local killedByCitizen = Helper.isUnitCitizen(killer)       
 	local name = dfhack.units.getReadableName(unit) or 'unknown'
 	local msg = string.format(
-		'[UnitDeath],id,%s,name,"%s",race,"%s",death_cause,"%s"',
+		'[UnitDeath],id,%s,name,"%s",race,"%s",death_cause,"%s",killer,"%s",killed_by_citizen,"%s"',
 		unit_id_str,
 		name,
 		unit_race,
-		unit_death_cause
+		unit_death_cause,
+		killer,
+		tostring(killedByCitizen)
+		
 	)
-
+	
 	LogHandler.write_log(msg)
+
 end
 
 return DeathLogger
