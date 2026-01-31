@@ -24,7 +24,7 @@ function ItemLogger.log(item_id)
 
 	local item_descr = dfhack.items.getReadableDescription(item)
 	local msg = string.format(
-		'[ItemCreated],id,%d,type,%s,material,%s,name,"%s",desc,"%s,maker,%s"',
+		'[ItemCreated],id,%d,type,%s,material,%s,name,%s,desc,%s,maker,%s',
 		item_id,
 		item_type,
 		mat_name,

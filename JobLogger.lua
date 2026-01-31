@@ -13,8 +13,11 @@ function JobLogger.log(job)
 	local job_unit = dfhack.job.getWorker(job)
 	local job_unit_name = job_unit and dfhack.units.getReadableName(job_unit) or 'unknown'
 
+	local mat = dfhack.matinfo.decode(job)
+	local mat_name = mat and mat:toString() or 'unknown material'
+
 	local msg = string.format(
-		'[JobCompleted],name,"%s",type,"%s",worker,"%s"', 
+		'[JobCompleted],name,%s,type,%s,worker,%s', 
 		job_name,
 		job_type,
 		job_unit_name

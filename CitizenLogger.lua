@@ -32,8 +32,10 @@ end
             end
         end,
         function(unit)
-            LogHandler.write_log(string.format("[Citizens],type,newcitizen,id,%d,name,%s,race,%s,", unit.id,
-                dfhack.translation.translateName(unit.name), dfhack.units.getRaceName(unit)))
+            local male = dfhack.units.isMale(unit)
+            local sex = male and "male" or "female
+            LogHandler.write_log(string.format("[Citizens],type,newcitizen,id,%d,name,%s,race,%s,age,%s,sex,%s", unit.id,
+                dfhack.translation.translateName(unit.name), dfhack.units.getRaceName(unit), dfhack.units.getAge(unit), sex))
         end,
         function(x,z)
             return false

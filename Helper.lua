@@ -101,30 +101,34 @@ function Helper.is_number(str)
     return tonumber(str) ~= nil and tostring(tonumber(str)) == str
 end
 
+local maxDepth = 6
+local currentParseDepth = 0
+
 -- Helper function to recursively print table contents
-function Helper.parseTable(t, serializedString)
+function Helper.parseTable(t, serializedString, parentPath)
     serializedString = serializedString or ""
+    parentPath = parentPath or ""
     if type(t) ~= "table" and type(t) ~= "userdata" then
         -- header line
-        serializedString = serializedString .. tostring(t) .. ","
+        serializedString = serializedString .. parentPath .. tostring(t) .. ","
         return serializedString
     end
     for k, v in pairs(t) do
+        local fullPath = parentPath ~= "" and (parentPath .. "." .. tostring(k)) or tostring(k)
         if type(v) == "table" or type(v) == "userdata" then
-            --print("t: " .. tostring(v))
-            serializedString = serializedString .. tostring(k) .. ","
-            serializedString = Helper.parseTable(v, serializedString)
+            if currentParseDepth < maxDepth then
+                currentParseDepth = currentParseDepth + 1
+                serializedString = Helper.parseTable(v, serializedString, fullPath)
+            end
         else
-            --print("t: " .. tostring(v))
-            --serializedString = serializedString .. tostring(k) .. "," .. Helper.resolveEnum(k,v) .. ","
             if Helper.is_number(tostring(k)) and v == false then
                 goto continue
             end
-            serializedString = serializedString .. tostring(k) .. "," .. tostring(v) .. ","
+            serializedString = serializedString .. fullPath .. "," .. tostring(v) .. ","
             ::continue::
-            --print(tostring(k) .. ": " .. Helper.resolveEnum(k,v))
         end
     end
+    currentParseDepth = currentParseDepth - 1
     return serializedString
 end
 
@@ -134,28 +138,41 @@ function Helper.getValueFromSerializedString(serializedString, key)
     return value
 end
 
+local maxDepth = 6
+local currentPrintDepth = -1
+local maxLines = 50
+local currentLines = 0
 -- Helper function to recursively print table contents
-function Helper.printTable(t, indent)
+function Helper.printTable(t, indent, parentPath)
+    currentPrintDepth = currentPrintDepth + 1
     indent = indent or ""
+    parentPath = parentPath or ""
     if type(t) ~= "table" and type(t) ~= "userdata" then
         -- header line
-        print("0 " .. indent .. tostring(t))
+        print("0 " .. indent .. parentPath .. tostring(t))
+        currentLines = currentLines + 1
+        if currentLines >= maxLines then
+            print("Max lines reached, stopping print.")
+            return
+        end
         return
     end
     for k, v in pairs(t) do
+        local fullPath = parentPath ~= "" and (parentPath .. "." .. tostring(k)) or tostring(k)
         if type(v) == "table" or type(v) == "userdata" then
-            --print("t: " .. tostring(v))
-            print("1 ".. indent .. tostring(k) .. ":")
-            Helper.printTable(v, indent .. "  ")
+            print(tostring(currentPrintDepth) .. " " .. indent .. fullPath .. ":")
+            if currentPrintDepth < maxDepth then
+                Helper.printTable(v, indent .. "  ", fullPath)
+            end
         else
-            --print("t: " .. tostring(v))
             if Helper.is_number(tostring(k)) and v == false then
                 goto continue
             end
-            print("2 " .. indent .. tostring(k) .. ": " .. Helper.resolveEnum(k,v))
+            print(tostring(currentPrintDepth) .. indent .. fullPath .. ": " .. Helper.resolveEnum(k,v))
             ::continue::
         end
     end
+    currentPrintDepth = currentPrintDepth - 1
 end
 
 function Helper.getUnitById(id)
@@ -191,15 +208,22 @@ function Helper.isUnitCitizen(unitId)
     return false
 end
 
-function Helper.getNameOfKillerByVictimId(victimId)
+function getKillerIdByVictimId(victimId)
     local incidents = df.global.world.incidents.all
     for _, incident in ipairs(incidents) do
         if incident.type == df.incident_type.Death and incident.victim == victimId then
             local death_incident = incident --:df.incident_deathst
-            local killerId = death_incident.criminal
-            return Helper.getUnitNameById(killerId)
+            return death_incident.criminal
         end
     end
+    return -1
+end
+
+function Helper.getNameOfKillerByVictimId(victimId)
+            local killerId = getKillerIdByVictimId(victimId)
+            if killerId ~= -1 then
+                return Helper.getUnitNameById(killerId)
+            end
     return "unknown_killer"
 end
 
@@ -230,5 +254,4 @@ function Helper.getIncidentDeathCauseByVictimId(victimId)
 end
 
 return Helper
-
 

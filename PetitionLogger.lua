@@ -14,22 +14,25 @@ local petitions = df.global.world.agreements.all
 
 local PetitionLogger = {}
 
+local newStr = ""
 local watcher = Helper.watch(
         function()
             return df.global.world.agreements.all
         end,
         function(petition)
-            local serializedString = ""
-            return Helper.parseTable(petition, serializedString)
+            return petition.id
         end,
         function(oldCount, newCount)
             if oldCount ~= newCount then
                 dfhack.gui.showAnnouncement(string.format("Petition count changed, from %d to %d\n", oldCount, newCount))
+                newStr = "[NEW],"
             end
         end,
         function(petition)
-            local serializedString = Helper.parseTable(petition)
+            LogHandler.write_log("Log petition change")
+            local serializedString = Helper.parseTable(petition,newStr)
             LogHandler.write_log("[PetitionChange],"..serializedString)
+            newStr = ""
         end,
         function(lastValue, petition2)
             local serializedString2 = Helper.parseTable(petition2)
@@ -39,6 +42,7 @@ local watcher = Helper.watch(
 
             return cond,lastValue,value2
         end
+
     )
 
 function PetitionLogger.watch()

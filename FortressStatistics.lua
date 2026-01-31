@@ -134,6 +134,7 @@ local function setupLogging()
         DeathLogger.log(unitId)
     end
     eventful.onJobCompleted[modId] = function(job)
+        dfhack.job.printJobDetails(job)
         JobLogger.log(job)
     end
     eventful.onInvasion[modId] = function(invasion)

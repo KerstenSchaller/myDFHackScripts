@@ -1,4 +1,5 @@
 local dfhack = require('dfhack')
+local eventful = require('plugins.eventful')
 
 local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/'
 package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.path
@@ -18,15 +19,7 @@ end
 
 goto next
 
-print("number of incidents:", #df.global.world.incidents.all)
 
-for _, incident in ipairs(df.global.world.incidents.all) do
-    if incident.type == df.incident_type.Death then
-        local death_incident = incident --:df.incident_deathst
-        Helper.printTable(death_incident)
-        return
-    end
-end
 
 ::next::
 
@@ -45,105 +38,71 @@ for _, artifact in ipairs(artifacts) do
     --end
 end
 
-function getHistFigName(histFigId)
-    print("active units n:"..#df.global.world.units.active)
-    for _, unit in ipairs(df.global.world.units.active) do
-        print("unit id "..unit.id)
-        if histFigId == unit.id then
-            return dfhack.units.getReadableName(unit)
-        end
-    end
-end
 
-function printDeathIncidentByVictimId(victimId)
-    local incidents = df.global.world.incidents.all
-    for _, incident in ipairs(incidents) do
-        if incident.type == df.incident_type.Death and incident.victim == victimId then
-            local death_incident = incident --:df.incident_deathst
-            Helper.printTable(death_incident)
-        end
-    end
-    return nil
-end
 
 
 
 local petitions = df.global.world.agreements.all
 print("number of petitions:", #petitions)
 
---Helper.printTable(petitions[#petitions - 1])
+local pet = petitions[#petitions-1]
+
+Helper.printTable(pet)
 local parsedPetition = Helper.parseTable(petitions[#petitions - 1])
-local type = Helper.getValueFromSerializedString(parsedPetition, "type")
-print("type:", type)
+local details = pet.details[0]
+local type = details.type
+print("type:", df.agreement_details_type[type])
 print("     ")
 
-            function getUnitById(id)
-                for _, unit in ipairs(df.global.world.units.active) do
-                    if unit.id == id then
-                        return unit
-                    end
-                end
-                return nil
-            end
-
-            function getUnitNameById(id)
-                local unit = getUnitById(id)
-                if unit then
-                    local unitname = dfhack.translation.translateName(unit.name) 
-                    if unitname == "" then
-                        unitname = dfhack.units.getReadableName(unit)
-                    end
-                    return unitname
-                else
-                    return "unknown_unit"
-                end
-            end
-
-function getNameOfKillerByVictimId(victimId)
-    local incidents = df.global.world.incidents.all
-    for _, incident in ipairs(incidents) do
-        if incident.type == df.incident_type.Death and incident.victim == victimId then
-            local death_incident = incident --:df.incident_deathst
-            local killerId = death_incident.criminal
-            return getUnitNameById(killerId)
+function findEntityById(id)
+    if #df.global.world.entities.all == 0 then
+        return nil
+    end
+    for _, entity in pairs(df.global.world.entities.all) do
+        if entity.id == id then
+            return entity
         end
     end
-    return "unknown_killer"
+    return nil
 end
 
-function isUnitCitizen(unitId)
-    for _, unit in ipairs(df.global.world.units.active) do
-        if unit.id == unitId then
-            print("found unit id "..unitId)
-            if dfhack.units.isCitizen(unit) then
-                return true
-            end
-        end
-    end
-    return false
+
+function log(unit_id)
+	local unit = df.unit.find(unit_id)
+	if not unit then return end
+
+	local unit_race = dfhack.units.getRaceName(unit) or 'unknown'
+	local unit_name = dfhack.units.getVisibleName(unit) or 'unknown'
+	local unit_id_str = tostring(unit_id)
+	local unit_death_cause = Helper.resolveEnum("death_type", Helper.getIncidentDeathCauseByVictimId(unit_id))
+    local killerId = Helper.getKillerIdbyVictimId(unit_id)
+    local killer_race = dfhack.units.getRaceName(Helper.getUnitById(killerId)) or 'unknown'
+	local killer = Helper.getNameOfKillerByVictimId(unit_id)
+	local killedByCitizen = Helper.isUnitCitizen(killer)       
+	local name = dfhack.units.getReadableName(unit) or 'unknown'
+	local msg = string.format(
+		'[UnitDeath],id,%s,name,%s,race,%s,death_cause,%s,killer,%s,killed_by_citizen,%s,killer_race,%s',
+		unit_id_str,
+		name,
+		unit_race,
+		unit_death_cause,
+		killer,
+		tostring(killedByCitizen),
+        killer_race
+		
+	)
+	
+	print(msg)
+
 end
 
-print("Victim")
-print(Helper.getUnitNameById(13097))
-print("    ")
-print("Killer")
-print(Helper.getNameOfKillerByVictimId(13097))
+log(12318)
 
-print(Helper.isUnitCitizen(13056))
-print("    ")
-
-printDeathIncidentByVictimId(13097)
-
-
-print(Helper.getUnitNameById(13056))
-
-local killedByCitizenStr =  true and "true1" or "false2"
-print("killedByCitizenStr:", killedByCitizenStr)
-
-print("active units n:"..#df.global.world.units.active)
-    for _, unit in ipairs(df.global.world.units.active) do
-        if dfhack.units.isCitizen(unit) then
-            print("citizen:"..dfhack.units.getReadableName(unit).."unitId"..unit.id)
-        end
+function printUnitName(unit)
+    local name = dfhack.translation.translateName(unit.name)
+    if name == "" then
+        name = dfhack.units.getReadableName(unit)
     end
+    print("Unit Name:", name)
+end
 
