@@ -2,8 +2,8 @@ local dfhack = require('dfhack') -- or just use global df
 
 -- Example: Inspecting a named type (struct/class)
 
-local all = df.global.world.agreements.all
-local details = all[#all-1].details[0]
+local all = df.global.world.units.all
+local details = all[#all-1]
 local unit_type = details._type
 
 print("Kind:", unit_type._kind) -- e.g., 'class-type'

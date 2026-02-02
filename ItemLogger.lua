@@ -21,16 +21,23 @@ function ItemLogger.log(item_id)
 
 	local makerId = item.maker
 	local maker = Helper.getMakerName(makerId)
+	local quality = item:getQuality()
+	local value = dfhack.items.getValue(item)
+	local isArtifact = item.flags.artifact
+
 
 	local item_descr = dfhack.items.getReadableDescription(item)
 	local msg = string.format(
-		'[ItemCreated],id,%d,type,%s,material,%s,name,%s,desc,%s,maker,%s',
+		'[ItemCreated],id,%d,type,%s,material,%s,name,%s,desc,%s,maker,%s,quality,%s,value,%s,artifact,%s',
 		item_id,
 		item_type,
 		mat_name,
 		item_name,
 		item_descr,
-		maker
+		maker,
+		quality,
+		value,
+		tostring(isArtifact)
 	)
 
 	msg = filterAnnouncement(msg, {"type=REMAINS", "name=magma", "type=SEEDS"})

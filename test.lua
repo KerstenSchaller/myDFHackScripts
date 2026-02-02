@@ -47,56 +47,29 @@ print("number of petitions:", #petitions)
 
 local pet = petitions[#petitions-1]
 
-Helper.printTable(pet)
-local parsedPetition = Helper.parseTable(petitions[#petitions - 1])
-local details = pet.details[0]
-local type = details.type
-print("type:", df.agreement_details_type[type])
-print("     ")
 
-function findEntityById(id)
-    if #df.global.world.entities.all == 0 then
-        return nil
-    end
-    for _, entity in pairs(df.global.world.entities.all) do
-        if entity.id == id then
-            return entity
+
+
+function log(item_id)
+    
+    for i, item in ipairs(df.global.world.items.all) do
+        if item.id == 2774 then
+            print("Found item with ID 2774 "..i)
+            local item_quality = item:getQuality()
+            print("quality:", item_quality)
+            local item_value = dfhack.items.getValue(item)
+            print("value:", item_value)
         end
     end
-    return nil
+
+    local item = df.global.world.items.all[item_id]
+    print("quality:", item:getQuality())
+    print("type:", df.item_type[item:getType()])
+    print("subtype:", df.item_subtype[item:getSubtype()])  
 end
 
 
-function log(unit_id)
-	local unit = df.unit.find(unit_id)
-	if not unit then return end
-
-	local unit_race = dfhack.units.getRaceName(unit) or 'unknown'
-	local unit_name = dfhack.units.getVisibleName(unit) or 'unknown'
-	local unit_id_str = tostring(unit_id)
-	local unit_death_cause = Helper.resolveEnum("death_type", Helper.getIncidentDeathCauseByVictimId(unit_id))
-    local killerId = Helper.getKillerIdbyVictimId(unit_id)
-    local killer_race = dfhack.units.getRaceName(Helper.getUnitById(killerId)) or 'unknown'
-	local killer = Helper.getNameOfKillerByVictimId(unit_id)
-	local killedByCitizen = Helper.isUnitCitizen(killer)       
-	local name = dfhack.units.getReadableName(unit) or 'unknown'
-	local msg = string.format(
-		'[UnitDeath],id,%s,name,%s,race,%s,death_cause,%s,killer,%s,killed_by_citizen,%s,killer_race,%s',
-		unit_id_str,
-		name,
-		unit_race,
-		unit_death_cause,
-		killer,
-		tostring(killedByCitizen),
-        killer_race
-		
-	)
-	
-	print(msg)
-
-end
-
-log(12318)
+log(2774)
 
 function printUnitName(unit)
     local name = dfhack.translation.translateName(unit.name)
@@ -106,3 +79,12 @@ function printUnitName(unit)
     print("Unit Name:", name)
 end
 
+
+
+
+Helper.printTable(pet)
+local parsedPetition = Helper.parseTable(petitions[#petitions - 1])
+local details = pet.details[0]
+local type = details.type
+print("type:", df.agreement_details_type[type])
+print("     ")

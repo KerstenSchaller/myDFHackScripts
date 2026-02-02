@@ -109,6 +109,8 @@ local function shutdownLogging()
     eventful.onJobCompleted[modId] = nil
     eventful.onInvasion[modId] = nil
 
+    
+
     package.loaded["JobLogger"] = nil
     package.loaded["ItemLogger"] = nil
     package.loaded["DeathLogger"] = nil
