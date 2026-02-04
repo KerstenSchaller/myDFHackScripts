@@ -7,4 +7,5 @@ package.loaded["AnnouncementWatcher"] = nil
 package.loaded["PetitionLogger"] = nil
 package.loaded["InvasionLogger"] = nil
 package.loaded["CitizenLogger"] = nil
+package.loaded["CurveWidget"] = nil
 package.loaded["test"] = nil

@@ -31,9 +31,11 @@ end
 -- Generalized watcher function
 function Helper.watch(getCurrentList, getKey, logChange, logNew, secondCondition) 
     local lastCount = 0
-    local lastItemValue = nil
+    local lastItemValues = {}
     local known_items = {}
     local firstCall = true
+
+-- doesnt always work, if theres more than one petition it might fail because only the last one is changed
 
     return function()
             if firstCall then
@@ -41,8 +43,10 @@ function Helper.watch(getCurrentList, getKey, logChange, logNew, secondCondition
                 lastCount = #known_items
                 firstCall = false
                 if secondCondition ~= nil then
-                   local _,_,val2 = secondCondition(known_items[#known_items-1],known_items[#known_items-1])
-                   lastItemValue = val2
+                    for id, item in ipairs(known_items) do
+                        local _,_,val = secondCondition(nil,item)
+                        lastItemValues[id] = val
+                    end
                 end
                 return lastCount
             end
@@ -65,13 +69,14 @@ function Helper.watch(getCurrentList, getKey, logChange, logNew, secondCondition
             lastCount = newCount
         end
         --check if the last item has changed
-        local currentLastItem = current_items[#current_items-1]
-        local cond, value1, value2 = secondCondition(lastItemValue, currentLastItem)
-        if cond then
-            logNew(currentLastItem)
-            dfhack.gui.showAnnouncement("Petition change detected")
-            known_items = current_items
-            lastItemValue = value2
+        for id, item in ipairs(current_items) do
+            local cond, value1, value2 = secondCondition(lastItemValues[id], item)
+            if cond then
+                logNew(item)
+                dfhack.gui.showAnnouncement("Petition change detected")
+                known_items = current_items
+                lastItemValues[id] = value2
+            end
         end
         return newCount
     end

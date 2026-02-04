@@ -22,6 +22,8 @@ function ItemLogger.log(item_id)
 	local makerId = item.maker
 	local maker = Helper.getMakerName(makerId)
 	local quality = item:getQuality()
+	df.gui.showAnnouncement(string.format("Item quality: %s ", tostring(quality)))
+	LogHandler.write_log(string.format("Item quality enum: %s ", tostring(df.item_quality[quality])))
 	local value = dfhack.items.getValue(item)
 	local isArtifact = item.flags.artifact
 
