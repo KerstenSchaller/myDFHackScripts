@@ -12,6 +12,22 @@ local merchants = {}
 local guests = {}
 local ghosts = {}
 
+    local pixelsRedRect = {}
+    local pixels = {}
+    for y = 1, 16 do
+        for x = 1, 16 do
+            table.insert(pixels, 255)
+            table.insert(pixels, 0)
+            table.insert(pixels, 0)
+        end
+    end
+    pixelsRedRect = pixels
+
+    for _, pixel in ipairs(pixelsRedRect) do
+        --local r, g, b, a = pixel.r, pixel.g, pixel.b, pixel.a
+        print(string.format("Pixel RGBA: (%d)", pixel))
+    end
+
 for _, unit in ipairs(allUnits) do
     if unit.flags3.ghostly then
         print("Ghostly unit found: ID "..unit.id.." Name: "..dfhack.translation.translateName(unit.name))
