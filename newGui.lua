@@ -91,7 +91,7 @@ local function writeImage(filename,color)
     f:close()
 end
 
-
+local years = {1000, 1100,1200}
 
 function MinimalWindow:onClick()
     local curve = self.subviews.curve
@@ -100,6 +100,7 @@ function MinimalWindow:onClick()
     for i = 1, 50 do
         table.insert(newValues, math.random(0, 100))
     end
+
     curve:updateValues(newValues)
 end
 
@@ -122,6 +123,7 @@ function MinimalWindow:init()
                             view_id='curve',
                             frame={t=0, l=0, r=0, b=0, w=50},
                             pen={fg=COLOR_GREEN, bg=COLOR_BLACK},
+                            years=years,
                             values=sinusValues,
                         },
                     },

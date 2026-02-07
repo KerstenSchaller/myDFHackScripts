@@ -20,6 +20,7 @@ CurveWidget = defclass(CurveWidget, Widget)
 
 CurveWidget.ATTRS{
     values = {},
+    years = {}, -- Optional: array of years for x-axis labels
     pen = {ch = '᯽', fg = COLOR_WHITE, bg = COLOR_BLACK},
 }
 
@@ -113,10 +114,35 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
     end
     -- Draw crossing at the new origin (one tile up and right from bottom-left)
     dc:seek(x + 1 + longest_label_len, y + h - 2):char(nil, dfhack.pen.parse{ch=crossingLineChar, fg=pen.fg, bg=pen.bg})
-    -- Draw x axis ticks
+    -- Draw x axis ticks and year labels
+    local years = pen._years or nil
+    local tick_idx = 1
     for i = xTickDistance+1, w-1, xTickDistance do
         if i ~= 1 then -- skip crossing
-            CurveWidget.drawXAxisTick(dc, x + i + longest_label_len, y + h - 2, pen)
+            local tick_x = x + i + longest_label_len
+            CurveWidget.drawXAxisTick(dc, tick_x, y + h - 2, pen)
+            -- Draw year label centered under tick
+            local year
+            if years and years[tick_idx] then
+                local tYear = years[tick_idx]
+                -- clip year to 3 digits if needed
+                if tYear > 999 then
+                    year = tostring(tYear % 1000)
+                else
+                    year = tostring(tYear)
+                end
+            else
+                year = tostring(math.floor((i - (xTickDistance+1)) / xTickDistance) + 0)
+            end
+            -- Pad year to 3 digits
+            year = string.rep('0', 3 - #year) .. year
+            -- Center year under tick (years are 3 chars wide)
+            local label_x = tick_x - 1
+            local label_y = y + h - 1
+            if label_x >= 0 and label_x + 2 < x + w then
+                dc:seek(label_x, label_y):string(year, dfhack.pen.parse{fg=pen.fg, bg=pen.bg})
+            end
+            tick_idx = tick_idx + 1
         end
     end
 
@@ -195,11 +221,14 @@ function CurveWidget:onRenderBody(dc)
         if values[i] > max then max = values[i] end
     end
     max = max 
-    -- Pass min/max via pen for Y tick labels
+    -- Pass min/max/years via pen for Y tick labels and X axis years
     local pen = {}
     for k,v in pairs(self.pen) do pen[k]=v end
     pen._min = min
     pen._max = max
+    if self.years then
+        pen._years = self.years
+    end
     local xOffset, yOffset, longest_label_len = CurveWidget.drawCoordinateSystem(dc, 0, 0, rect.width, rect.height, pen)
     CurveWidget.drawValues(dc, rect, values, xOffset, yOffset)
 end
