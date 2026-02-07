@@ -125,7 +125,7 @@ function MinimalWindow:init()
                             frame={t=0, l=0, r=0, b=0, w=54},
                             pen={fg=COLOR_GREEN, bg=COLOR_BLACK},
                             years=years,
-                            values=sinusValues,
+                            values=values,
                         },
                     },
                     

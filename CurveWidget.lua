@@ -47,6 +47,9 @@ local barChar = LightShadeChar
 
 function sliderValueChanged()
     dfhack.gui.showAnnouncement("Slider value changed: " .. tostring(sliderVal), COLOR_LIGHTGREEN)
+    if CurveWidget and CurveWidget.redraw then
+        CurveWidget:redraw()
+    end
 end
 
 local sliderVal = 1
@@ -60,9 +63,10 @@ function CurveWidget:init()
             get_idx_fn=function()
                 return sliderVal
             end,
-            on_change=function(idx) 
+            on_change=function(idx)
                 sliderVal = idx
                 sliderValueChanged()
+                self:updateLayout()
             end,
         }
     }
@@ -116,7 +120,6 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
             local value = min + (max-min) * (t*yTickDistance) / (math.min(max-min,h-heightSupression))
             local int_value = math.floor(value + 0.5)
             local label = tostring(int_value)
-            dfhack.gui.showAnnouncement("Value: " .. label, COLOR_LIGHTGREEN)
 
             CurveWidget.drawYAxisTick(dc, x + 1 + longest_label_len, y + j, pen)
             yTickPositions[j] = int_value
@@ -145,26 +148,25 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
     -- Draw x axis ticks and year labels
     local years = pen._years or nil
     local tick_idx = 1
+    local startIdx = sliderVal - 1 or 1
     for i = xTickDistance+1, w-1, xTickDistance do
         if i ~= 1 then -- skip crossing
             local tick_x = x + i + longest_label_len
             CurveWidget.drawXAxisTick(dc, tick_x, y + h - 2, pen)
             -- Draw year label centered under tick
             local year
-            if years and years[tick_idx] then
-                local tYear = years[tick_idx]
-                -- clip year to 3 digits if needed
+            local valueIdx = startIdx + tick_idx
+            if years and years[valueIdx] then
+                local tYear = years[valueIdx]
                 if tYear > 999 then
                     year = tostring(tYear % 1000)
                 else
                     year = tostring(tYear)
                 end
             else
-                year = tostring(math.floor((i - (xTickDistance+1)) / xTickDistance) + 0)
+                year = tostring(valueIdx)
             end
-            -- Pad year to 3 digits
             year = string.rep('0', 3 - #year) .. year
-            -- Center year under tick (years are 3 chars wide)
             local label_x = tick_x - 1
             local label_y = y + h - 1
             if label_x >= 0 and label_x + 2 < x + w then
@@ -225,14 +227,17 @@ function CurveWidget.drawValues(dc, rect, values, xOffset, yOffset)
     end
     local height = rect.height 
     local width = rect.width
-    for i = 1, math.min(width-2, n) do
+    local startIdx = sliderVal*xTickDistance or 1
+    --local valueIdx = startIdx + xTickDistance
+    local endIdx = math.min(startIdx + width - 3, n)
+    for i = startIdx, endIdx do
         local v = values[i]
         -- Calculate bar height (number of rows to fill)
         local barHeight = math.floor((v - min) / math.max(1, max - min) *  (math.min(max-min,height-heightSupression)) + 0.5)
         for h = 0, barHeight - 1 do
             local y = height - 2 - h -- -2 to stay above axis
             local _pen = dfhack.pen.parse{ ch = barChar, fg = COLOR_WHITE, bg = COLOR_BLACK }
-            dc:seek(i + xOffset, y - yOffset):char(nil, _pen)
+            dc:seek(i - startIdx + 1 + xOffset, y - yOffset):char(nil, _pen)
         end
     end
 end
