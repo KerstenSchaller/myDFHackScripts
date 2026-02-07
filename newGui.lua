@@ -117,7 +117,7 @@ function MinimalWindow:init()
     local logo_textures=dfhack.textures.loadTileset('image.ppm', 8, 12, true)
     self:addviews{
                 widgets.Panel{
-                    frame={t=2, h=20, w=54},
+                    frame={t=0, h=26, w=54},
                     frame_style=gui.FRAME_INTERIOR,
                     subviews={
                         CurveWidget{

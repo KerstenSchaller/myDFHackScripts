@@ -24,7 +24,7 @@ CurveWidget.ATTRS{
     pen = {ch = '᯽', fg = COLOR_WHITE, bg = COLOR_BLACK},
 }
 
-local heightSupression = 3 -- number of rows to suppress at top of graph to prevent bars from touching top border
+local heightSupression = 4 -- number of rows to suppress at top of graph to prevent bars from touching top border
 
 local cornerCharBottomRight = 217
 local cornerCharTopLeft = 218
@@ -55,6 +55,13 @@ end
 local sliderVal = 1
 function CurveWidget:init()
     self:addviews{
+        widgets.Label{
+            frame={t=0,l=20},
+            text="Adjust range:",
+        },
+        widgets.Divider{
+            frame={t=1,l=0,r=0},
+        },
         widgets.Slider{
             view_id='range_slider',
             frame={b=0},
@@ -263,8 +270,8 @@ function CurveWidget:onRenderBody(dc)
     if self.years then
         pen._years = self.years
     end
-    local xOffset, yOffset, longest_label_len = CurveWidget.drawCoordinateSystem(dc, 0, 0, rect.width, rect.height-1, pen)
-    CurveWidget.drawValues(dc, rect, values, xOffset, yOffset+1)
+    local xOffset, yOffset, longest_label_len = CurveWidget.drawCoordinateSystem(dc, 0, 1, rect.width, rect.height-2,pen)
+    CurveWidget.drawValues(dc, rect, values, xOffset, yOffset)
 end
 
 return CurveWidget
