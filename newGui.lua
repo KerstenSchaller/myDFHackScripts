@@ -32,8 +32,11 @@ MinimalWindow.ATTRS {
 local sinusAmplitude = 300
 local sinusFrequency = 0.2
 local sinusValues = {}
-for i = 0, 49 do
-    table.insert(sinusValues, sinusAmplitude + sinusAmplitude * math.sin(i * sinusFrequency))
+for i = 0, 149 do
+    local val = sinusAmplitude * math.sin(i * sinusFrequency)
+    if val > 0 then
+        table.insert(sinusValues, val )
+    end
 end
 
 local handles = nil
@@ -41,15 +44,7 @@ local logo_textures1, logo_dfhack
 local label_with_tileset
 local using_logo1 = true
 
-function MinimalWindow:onButtonClick()
-    --dfhack.screen.dismiss(view)
 
-    dfhack.gui.showAnnouncement("Button clicked! Toggling logo. Using logo1: " .. tostring(using_logo1), COLOR_LIGHTGREEN)  
-    --DiagramScreen{}:show()
-    local diagramScreen = DiagramScreen{tileset_path = "image.ppm"}
-    diagramScreen:show()
-
-end
 
 
 
@@ -91,19 +86,28 @@ local function writeImage(filename,color)
     f:close()
 end
 
-local years = {1000, 1100,1200}
+local years = {4,8,12,16,20,24,28,32,36,40,44,48,52,56,60}
 
 function MinimalWindow:onClick()
     local curve = self.subviews.curve
     local newValues = {}
     -- generate random values for demonstration
-    for i = 1, 50 do
+    for i = 1, 150 do
         table.insert(newValues, math.random(0, 100))
     end
 
     curve:updateValues(newValues)
 end
 
+local values       = {100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,
+                      121,122,123,124,125,126,127,128,129,130,
+                      131,132,133,134,135,136,137,138,139,140,
+                      141,142,143,144,145,146,147,148,149}
+local values = {0,1,2,3,4,5,6,7,8,9,10,
+                11,12,13,14,15,16,17,18,19,
+                20,21,22,23,24,25,26,27,28,
+                29,30,31,32,33,34,35,36,37,
+                38,39,40,41,42,43,44,45,46,47,}
 
 function MinimalWindow:init()
     writeImage("image.ppm", BLACK_SHADE)
@@ -112,16 +116,13 @@ function MinimalWindow:init()
     handles = logo_textures1
     local logo_textures=dfhack.textures.loadTileset('image.ppm', 8, 12, true)
     self:addviews{
-
-
-
                 widgets.Panel{
-                    frame={b=2, h=20, w=50},
+                    frame={t=2, h=20, w=54},
                     frame_style=gui.FRAME_INTERIOR,
                     subviews={
                         CurveWidget{
                             view_id='curve',
-                            frame={t=0, l=0, r=0, b=0, w=50},
+                            frame={t=0, l=0, r=0, b=0, w=54},
                             pen={fg=COLOR_GREEN, bg=COLOR_BLACK},
                             years=years,
                             values=sinusValues,
@@ -130,6 +131,7 @@ function MinimalWindow:init()
                     
                 },
                 widgets.Label{
+                    frame={b=5,l=5},
                     text=widgets.makeButtonLabelText{
                         chars={
                             {179, 'D', 'F', 179},
@@ -146,9 +148,10 @@ function MinimalWindow:init()
                     on_click=function()
                         self:onClick()
                     end,
-                },
+                }
+             }
         
-    }
+    
     ::skip_texture_loading::
 end
 

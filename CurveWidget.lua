@@ -1,7 +1,7 @@
 --- Draws a coordinate system (axes) using the line and crossing chars
 
 local gui = require('gui')
-local Widget = require('gui.widgets.widget')
+local widgets = require('gui.widgets')
 
 
 -------------
@@ -24,6 +24,8 @@ CurveWidget.ATTRS{
     pen = {ch = '᯽', fg = COLOR_WHITE, bg = COLOR_BLACK},
 }
 
+local heightSupression = 3 -- number of rows to suppress at top of graph to prevent bars from touching top border
+
 local cornerCharBottomRight = 217
 local cornerCharTopLeft = 218
 local cornerCharTopRight = 191
@@ -43,6 +45,29 @@ local DarkShadeChar = 178
 
 local barChar = LightShadeChar 
 
+function sliderValueChanged()
+    dfhack.gui.showAnnouncement("Slider value changed: " .. tostring(sliderVal), COLOR_LIGHTGREEN)
+end
+
+local sliderVal = 1
+function CurveWidget:init()
+    self:addviews{
+        widgets.Slider{
+            view_id='range_slider',
+            frame={b=0},
+            active=true,
+            num_stops=16,
+            get_idx_fn=function()
+                return sliderVal
+            end,
+            on_change=function(idx) 
+                sliderVal = idx
+                sliderValueChanged()
+            end,
+        }
+    }
+
+end
 
 function CurveWidget.drawXAxisTick(dc, x, y, pen)
     dc:seek(x , y):char(nil, dfhack.pen.parse{ch=xTickChar, fg=pen.fg, bg=pen.bg})
@@ -58,10 +83,10 @@ function CurveWidget.getLongestLabelLength(dc, x, y, w, h, pen)
     local nTicks = math.floor((h-2) / yTickDistance)
     local yTickPositions = {}
     for t = 1, nTicks do
-        local j = h-2-t*yTickDistance
+        local j = h-1-t*yTickDistance
         if j >= 0 and j ~= h-2 then -- skip crossing
             -- Draw value label (right-aligned, left of axis)
-            local value = min + (max-min) * (t*yTickDistance) / (h-3)
+            local value = min + (max-min) * (t*yTickDistance) / (h)
             local int_value = math.floor(value + 0.5)
             local label = tostring(int_value)
             if #label > longest_label_len then longest_label_len = #label end
@@ -81,19 +106,22 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
     -- Draw y axis ticks and value labels
     -- For value labels, we need min/max, so pass them as extra args (optional)
     local min, max = pen._min or 0, pen._max or 1
-    local nTicks = math.floor((h-2) / yTickDistance)
+    local nTicks = math.floor((h) / yTickDistance)
     local longest_label_len = CurveWidget.getLongestLabelLength(dc, x, y, w, h, pen)
     local yTickPositions = {}
     for t = 1, nTicks do
         local j = h-2-t*yTickDistance
-        if j >= 0 and j ~= h-2 then -- skip crossing
+        if j + 2 >= 0 and j ~= h-2 then -- skip crossing
             -- Draw value label (right-aligned, left of axis)
-            local value = min + (max-min) * (t*yTickDistance) / (h-3)
+            local value = min + (max-min) * (t*yTickDistance) / (math.min(max-min,h-heightSupression))
             local int_value = math.floor(value + 0.5)
             local label = tostring(int_value)
+            dfhack.gui.showAnnouncement("Value: " .. label, COLOR_LIGHTGREEN)
+
             CurveWidget.drawYAxisTick(dc, x + 1 + longest_label_len, y + j, pen)
             yTickPositions[j] = int_value
             local label_x = x + 1 - #label - 1 + longest_label_len
+            label_x =1
             if label_x >= 0 then
                 dc:seek(x, y + j):string(label, dfhack.pen.parse{fg=pen.fg, bg=pen.bg})
             end
@@ -195,12 +223,12 @@ function CurveWidget.drawValues(dc, rect, values, xOffset, yOffset)
         if values[i] < min then min = values[i] end
         if values[i] > max then max = values[i] end
     end
-    local height = rect.height
+    local height = rect.height 
     local width = rect.width
     for i = 1, math.min(width-2, n) do
         local v = values[i]
         -- Calculate bar height (number of rows to fill)
-        local barHeight = math.floor((v - min) / math.max(1, max - min) * (height - 3) + 0.5)
+        local barHeight = math.floor((v - min) / math.max(1, max - min) *  (math.min(max-min,height-heightSupression)) + 0.5)
         for h = 0, barHeight - 1 do
             local y = height - 2 - h -- -2 to stay above axis
             local _pen = dfhack.pen.parse{ ch = barChar, fg = COLOR_WHITE, bg = COLOR_BLACK }
@@ -212,6 +240,7 @@ end
 --- Renders the coordinate system and the values
 ---@param dc gui.Painter
 function CurveWidget:onRenderBody(dc)
+
     local rect = self.frame_rect
     local values = self.values
     -- Find min/max for Y axis labels
@@ -229,8 +258,8 @@ function CurveWidget:onRenderBody(dc)
     if self.years then
         pen._years = self.years
     end
-    local xOffset, yOffset, longest_label_len = CurveWidget.drawCoordinateSystem(dc, 0, 0, rect.width, rect.height, pen)
-    CurveWidget.drawValues(dc, rect, values, xOffset, yOffset)
+    local xOffset, yOffset, longest_label_len = CurveWidget.drawCoordinateSystem(dc, 0, 0, rect.width, rect.height-1, pen)
+    CurveWidget.drawValues(dc, rect, values, xOffset, yOffset+1)
 end
 
 return CurveWidget
