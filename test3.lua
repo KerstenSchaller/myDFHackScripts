@@ -6,108 +6,98 @@ local dfhack = require('dfhack')
 
 local logo_textures1 = dfhack.textures.loadTileset('hack/data/art/logo.png', 8, 12, true)
 
-local view1, view2
+local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/'
+package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.path
 
-TestWindow1 = defclass(TestWindow1, widgets.Window)
-TestWindow1.ATTRS {
-	frame_title = 'Test Window 1',
-	frame = {w = 60, h = 10, r = 2, t = 5},
-	autoarrange_subviews = true,
-	autoarrange_gap = 1,
-	resizable = true,
-}
+local LogParser = require('LogParser')
 
-function TestWindow1:onButtonClick()
-	dfhack.gui.showAnnouncement('TestWindow1 Button clicked! Args: '..tostring(x)..','..tostring(y), COLOR_LIGHTGREEN)
-	dfhack.screen.dismiss(view1)
-	view2 = TestScreen2{}:show()
+local view
+
+StatsTextWidget = defclass(StatsTextWidget, widgets.Widget)
+
+local currentIndex = 1
+
+function StatsTextWidget:setCurrentIndex(idx)
+	currentIndex = idx
 end
 
-function TestWindow1:init()
+function StatsTextWidget:getCurrentIndex()
+	return currentIndex
+end
+
+function StatsTextWidget:init()
 	self:addviews{
 		widgets.Label{
-			text=widgets.makeButtonLabelText{
-				chars={
-					{179, 'D', 'F', 179},
-					{179, 'H', 'a', 179},
-					{179, 'c', 'k', 179},
-				},
-				view_id='graphLabel1',
-				tileset=logo_textures1,
-				tileset_offset=1,
-				tileset_stride=8,
-				tileset_hover=logo_textures1,
-				tileset_hover_offset=5,
-				tileset_hover_stride=8,
-			},
-			on_click=function(self)
-				self:onButtonClick()
-			end,
+			view_id='statsPageLabel',
+			frame={t=0,l=0},
+			text="Stats Text Widget "..tostring(currentIndex),
 		},
 	}
 end
 
-TestScreen1 = defclass(TestScreen1, gui.ZScreen)
-TestScreen1.ATTRS {
-	focus_path = 'test1',
-	pass_movement_keys = true,
-	pass_mouse_clicks = false,
-}
-
-function TestScreen1:init()
-	self:addviews{TestWindow1{}}
+function StatsTextWidget:onRenderBody(dc)
+	self.subviews.statsPageLabel:setText("Stats Text Widget "..tostring(currentIndex))
+	self:updateLayout()
 end
 
-TestWindow2 = defclass(TestWindow2, widgets.Window)
-TestWindow2.ATTRS {
+StatsWindow = defclass(StatsWindow, widgets.Window)
+StatsWindow.ATTRS {
 	frame_title = 'Test Window 2',
-	frame = {w = 60, h = 10, r = 2, t = 20},
+	frame={w=80, h=40, l=40, t=13},
 	autoarrange_subviews = true,
 	autoarrange_gap = 1,
 	resizable = true,
 }
 
-function TestWindow2:onButtonClick()
-	dfhack.gui.showAnnouncement('TestWindow2 Button clicked! Args: '..tostring(x)..','..tostring(y), COLOR_LIGHTRED)
-	dfhack.screen.dismiss(view2)
-	view1 = TestScreen1{}:show()
-end
 
-function TestWindow2:init()
+
+LogParser.parseAll()
+local years = LogParser.getYears()
+--local years = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"}
+
+
+function StatsWindow:init()
 	self:addviews{
-		widgets.Label{
-			text=widgets.makeButtonLabelText{
-				chars={
-					{179, 'T', 'E', 179},
-					{179, 'S', 'T', 179},
-					{179, 'W', '2', 179},
-				},
-				view_id='graphLabel2',
-				tileset=logo_textures1,
-				tileset_offset=1,
-				tileset_stride=8,
-				tileset_hover=logo_textures1,
-				tileset_hover_offset=5,
-				tileset_hover_stride=8,
-			},
-			on_click=function()
-				self:onButtonClick()
-			end,
+		widgets.TabBar{
+            labels=years,
+            on_select=function(idx)
+					currentIndex = idx
+					StatsTextWidget:setCurrentIndex(idx)
+					self:updateLayout()
+				end,
+			get_cur_page=function() return StatsTextWidget:getCurrentIndex() end,
+        },
+		widgets.Divider{
+			frame_style_l=false,
+            frame_style_r=false,
+            frame={t=3,l=0,r=0,h=1},
+		},	
+		StatsTextWidget{
+			view_id='statsTextWidget',
+			frame={t=4,l=0,r=0,b=0},
 		},
 	}
 end
 
-TestScreen2 = defclass(TestScreen2, gui.ZScreen)
-TestScreen2.ATTRS {
+function StatsWindow:onRenderBody(dc)
+	--self.subviews.statsTextWidget:setCurrentIndex(currentIndex)
+	self:updateLayout()
+	--ZScreen.super.render(self, dc)
+end
+StatScreen = defclass(StatScreen, gui.ZScreen)
+StatScreen.ATTRS {
 	focus_path = 'test2',
 	pass_movement_keys = true,
 	pass_mouse_clicks = false,
 }
 
-function TestScreen2:init()
-	self:addviews{TestWindow2{}}
+function StatScreen:init()
+	self:addviews{StatsWindow{}}
 end
 
 -- Show only TestScreen1 initially
-view1 = view1 and view1:raise() or TestScreen1{}:show()
---view2 = view2 and view2:raise() or TestScreen2{}:show()
+--view1 = view1 and view1:raise() or TestScreen1{}:show()
+view = view and view:raise() or StatScreen{}:show()
+
+
+::EOF::

@@ -10,9 +10,9 @@ local Helper = require('Helper')
 local logHandler = require('LogHandler')
 
 
+local LogParser = {}
 
-
-function splitCommaSeparated(str)
+function LogParser.splitCommaSeparated(str)
    local result = {}
    for entry in string.gmatch(str, '([^,]+)') do
       table.insert(result, entry)
@@ -21,7 +21,7 @@ function splitCommaSeparated(str)
 end
 
 
-function logItemPartsToTable(parts)
+function LogParser.logItemPartsToTable(parts)
    local t = {
       date = {
          day = parts[1],
@@ -44,7 +44,7 @@ function logItemPartsToTable(parts)
 end
 
 -- Converts a split log line for [Announcement] into a structured table with named fields
-function logAnnouncementPartsToTable(parts)
+function LogParser.logAnnouncementPartsToTable(parts)
    return {
       date = {
          day = parts[1],
@@ -59,7 +59,7 @@ function logAnnouncementPartsToTable(parts)
 end
 
 -- Converts a split log line for [JobCompleted] into a structured table with named fields
-function logJobCompletedPartsToTable(parts)
+function LogParser.logJobCompletedPartsToTable(parts)
    return {
       date = {
          day = parts[1],
@@ -74,7 +74,7 @@ function logJobCompletedPartsToTable(parts)
 end
 
 -- Converts a split log line for [UnitDeath] into a structured table with named fields
-function logUnitDeathPartsToTable(parts)
+function LogParser.logUnitDeathPartsToTable(parts)
    local joinedPartsString = table.concat(parts, ",", 8)
    return {
       date = {
@@ -95,7 +95,7 @@ function logUnitDeathPartsToTable(parts)
 end
 
 -- Converts a split log line for [PetitionChange] into a structured table with key-value pairs
-function logPetitionChangePartsToTable(parts)
+function LogParser.logPetitionChangePartsToTable(parts)
    local newCond = parts[5] == "[NEW]" and true or false
    local t = {
       date = {
@@ -113,11 +113,11 @@ function logPetitionChangePartsToTable(parts)
 end
 
 
-function listNumberOfDifferentMessages(logLines)
+function LogParser.listNumberOfDifferentMessages(logLines)
    local unique = {}
    for _, line in ipairs(logLines) do
     print(line)
-      local parts = splitCommaSeparated(line)
+      local parts = LogParser.splitCommaSeparated(line)
       if parts[4] then
          unique[parts[4]] = true
          
@@ -133,30 +133,50 @@ end
 
 
 -- Parses logLines into lists according to their 4th element
-function parseLogLinesByType(logLines)
+function LogParser.parseLogLinesByType(logLines)
    local Announcement = {}
    local ItemCreated = {}
    local PetitionChange = {}
    local Citizens = {}
    local JobCompleted = {}
    local UnitDeath = {}
+   local years = {}
 
    for _, line in ipairs(logLines) do
-      local parts = splitCommaSeparated(line)
+      local parts = LogParser.splitCommaSeparated(line)
       local msgType = parts[4]
       if msgType == '[Announcement]' then
-         table.insert(Announcement, logAnnouncementPartsToTable(parts))
+         table.insert(Announcement, LogParser.logAnnouncementPartsToTable(parts))
       elseif msgType == '[ItemCreated]' then
-         table.insert(ItemCreated, logItemPartsToTable(parts))
+         table.insert(ItemCreated, LogParser.logItemPartsToTable(parts))
       elseif msgType == '[PetitionChange]' then
-         table.insert(PetitionChange, logPetitionChangePartsToTable(parts))
+         table.insert(PetitionChange, LogParser.logPetitionChangePartsToTable(parts))
       elseif msgType == '[Citizens]' then
          table.insert(Citizens, parts)
       elseif msgType == '[JobCompleted]' then
-         table.insert(JobCompleted, logJobCompletedPartsToTable(parts))
+         table.insert(JobCompleted, LogParser.logJobCompletedPartsToTable(parts))
       elseif msgType == '[UnitDeath]' then
-         table.insert(UnitDeath, logUnitDeathPartsToTable(parts))
+         table.insert(UnitDeath, LogParser.logUnitDeathPartsToTable(parts))
       end
+
+      -- Collect unique years
+      local year = parts[3] 
+      
+      if year then
+         years[year] = true
+      end
+   end
+
+   --sort years numerically 
+   local sortedYears = {}
+   for year, _ in pairs(years) do
+      table.insert(sortedYears, year)
+   end
+   table.sort(sortedYears)
+   
+   local stringYears = {}
+   for _, year in ipairs(sortedYears) do
+      table.insert(stringYears, tostring(year))
    end
 
    return {
@@ -165,18 +185,19 @@ function parseLogLinesByType(logLines)
       PetitionChange = PetitionChange,
       Citizens = Citizens,
       JobCompleted = JobCompleted,
-      UnitDeath = UnitDeath
+      UnitDeath = UnitDeath,
+      Years = stringYears
    }
 end
 
 
-function analyzeJobCompleted(jobCompletedLines)
+function LogParser.analyzeJobCompleted(jobCompletedLines)
     local jobTypeCount = {}
     local workerCount = {}
     local jobsByWorker = {}
 
     for _, line in ipairs(jobCompletedLines) do
-        local parts = splitCommaSeparated(line)
+        local parts = LogParser.splitCommaSeparated(line)
         -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
         local jobType = parts[6] or "unknown"
         local worker = parts[8] or "unknown"
@@ -213,7 +234,7 @@ function analyzeJobCompleted(jobCompletedLines)
 end
 
 
-function analyzeItemCreated(itemCreatedLines)
+function LogParser.analyzeItemCreated(itemCreatedLines)
    local itemTypeCount = {}
    local creatorCount = {}
    local itemsByCreator = {}
@@ -287,18 +308,19 @@ function analyzeItemCreated(itemCreatedLines)
    end
 end
 
-local logLines = logHandler.readAllLogLines()
-local parsedLists = parseLogLinesByType(logLines)
+local parsedLists = nil
+
+function LogParser.parseAll()
+   local logLines = logHandler.readAllLogLines()
+   parsedLists = LogParser.parseLogLinesByType(logLines)
+   return parsedLists
+end
+
+function LogParser.getYears()
+   return parsedLists.Years
+end
 
 
 
 
-print("Number of Announcement logs: " .. #parsedLists.Announcement)
-print("Number of ItemCreated logs: " .. #parsedLists.ItemCreated)   
-print("Number of PetitionChange logs: " .. #parsedLists.PetitionChange)
-print("Number of Citizens logs: " .. #parsedLists.Citizens)
-print("Number of JobCompleted logs: " .. #parsedLists.JobCompleted)
-
---analyzeJobCompleted(parsedLists.JobCompleted)
-analyzeItemCreated(parsedLists.ItemCreated)
-
+return LogParser

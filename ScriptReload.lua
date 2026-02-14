@@ -13,3 +13,4 @@ package.loaded["DiagramWindow"] = nil
 package.loaded["test"] = nil
 package.loaded["test2"] = nil
 package.loaded["test3"] = nil
+package.loaded["LogParser"] = nil
