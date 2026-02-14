@@ -47,11 +47,8 @@ local DarkShadeChar = 178
 
 local barChar = LightShadeChar 
 
-function sliderValueChanged()
+function CurveWidget:sliderValueChanged()
     dfhack.gui.showAnnouncement("Slider value changed: " .. tostring(sliderVal), COLOR_LIGHTGREEN)
-    if CurveWidget and CurveWidget.redraw then
-        CurveWidget:redraw()
-    end
 end
 
 function CurveWidget:UpdateValueText()
@@ -71,12 +68,7 @@ function CurveWidget:init()
         table.insert(yearOptions, {label=tostring(year), value=year})
     end
 
-    local quarterOptions={
-        {label="Q1", value=1},
-        {label="Q2", value=2},
-        {label="Q3", value=3},
-        {label="Q4", value=4},
-    }
+
 
     self:addviews{
         widgets.Label{
@@ -84,13 +76,11 @@ function CurveWidget:init()
             text=self.title,
         },
         widgets.Divider{
-            view_id='divider1',
             frame_style_l=false,
             frame_style_r=false,
             frame={t=1,l=0,r=0,h=1},
         },
         widgets.Slider{
-            view_id='range_slider',
             frame={b=3},
             active=true,
             num_stops=16,
@@ -99,7 +89,8 @@ function CurveWidget:init()
             end,
             on_change=function(idx)
                 sliderVal = idx
-                sliderValueChanged()
+                self.subviews.valueLabel:setText(string.format("Values Year %d Q1 %d Q2 %d Q3 %d Q4 %d", self.years[sliderVal+sliderVal2-1]-xTickDistance , self.values[sliderVal+sliderVal2-1] , self.values[sliderVal+sliderVal2], self.values[sliderVal+sliderVal2+1], self.values[sliderVal+sliderVal2+2]))
+                --self:sliderValueChanged()
                 self:updateLayout()
             end,
         },
@@ -110,8 +101,7 @@ function CurveWidget:init()
             frame={b=2,l=0,h=1,w=54},
         },
         widgets.Slider{
-            view_id='range_slider',
-            frame={b=3},
+            frame={b=1},
             active=true,
             num_stops=16,
             get_idx_fn=function()
@@ -119,7 +109,15 @@ function CurveWidget:init()
             end,
             on_change=function(idx)
                 sliderVal2 = idx
+                self.subviews.valueLabel:setText(string.format("Values Year %d Q1 %d Q2 %d Q3 %d Q4 %d", self.years[sliderVal+sliderVal2-1]-xTickDistance , self.values[sliderVal+sliderVal2-1] , self.values[sliderVal+sliderVal2], self.values[sliderVal+sliderVal2+1], self.values[sliderVal+sliderVal2+2]))
+                self:updateLayout()
             end,
+        },
+        widgets.Label{
+            view_id='valueLabel',
+            frame={b=0},
+            --text=string.format("Values Year %d Q1 %d Q2 %d Q3 %d Q4 %d", self.years[sliderVal] , self.values[(sliderVal2-1)*4 + 1] or 0, self.values[(sliderVal2-1)*4 + 2] or 0, self.values[(sliderVal2-1)*4 + 3] or 0, self.values[(sliderVal2-1)*4 + 4] or 0),
+            text=string.format("Values Year %d Q1 %d Q2 %d Q3 %d Q4 %d", self.years[sliderVal+sliderVal2-1]-xTickDistance , self.values[sliderVal+sliderVal2-1] , self.values[sliderVal+sliderVal2], self.values[sliderVal+sliderVal2+1], self.values[sliderVal+sliderVal2+2]),
         },
     }
 

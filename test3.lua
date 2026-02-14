@@ -10,7 +10,7 @@ local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/'
 package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.path
 
 local LogParser = require('LogParser')
-local DiagramScreen = require('DiagramWindow')
+local CurveWidget = require('CurveWidget')
 
 local view
 
@@ -55,13 +55,39 @@ LogParser.parseAll()
 local years = {"All", table.unpack(LogParser.getYears())}
 --local years = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"}
 
+local currentV = 1
+function StatsWindow:onScrollbar(scroll_spec)
+
+	local v = 0
+    if tonumber(scroll_spec) then
+        v = scroll_spec - self.page_top
+    elseif scroll_spec == 'down_large' then
+        v = math.ceil(self.page_size / 2)
+    elseif scroll_spec == 'up_large' then
+        v = -math.ceil(self.page_size / 2)
+    elseif scroll_spec == 'down_small' then
+        v = 1
+    elseif scroll_spec == 'up_small' then
+        v = -1
+    end
+    currentV = currentV + v
+
+	
+	dfhack.gui.showAnnouncement("height: " .. self.frame_body.height.. " render_start_line: " .. render_start_line.. " scroll_spec: " .. scroll_spec, COLOR_LIGHTGREEN)
+	self.scrollbar:update(
+        currentV,
+        5,
+        60
+    )
+	self:updateLayout()
+end
 
 function StatsWindow:init()
 
 	local longInitText = ""
 	-- fill longInitText with a very long string to test scrolling	
 	for i = 1, 100 do
-		longInitText = longInitText .. "This is line " .. i ..'-------------------------------------------------------' .."\n"
+		longInitText = longInitText .. "This is line " .. i ..'------------------------------------------------------' .."\n"
 	end
 
 	self:addviews{
@@ -103,15 +129,38 @@ function StatsWindow:init()
 			frame_style=gui.FRAME_INTERIOR,
 			frame={t=3,l=7,b=0},
 			subviews={
-				widgets.WrappedLabel{
+				
+
+				
+				--[[
+				CurveWidget{
+					view_id='curve',
+					frame={t=3, l=3, h=26, w=54},
+					pen={fg=COLOR_GREEN, bg=COLOR_BLACK},
+					years={4,8,12,16,20,24,28,32,36,40,44,48,52,56,60,64,68,72,76,80},
+					values={0,1,2,3,4,5,6,7,8,9,10,9,8,7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,8,9,10},
+					title="Example Stats",
+				},
+				
+				widgets.Label{
 					view_id='statsTextWidget',
 					frame={t=0,l=0,w=WindowWidth-7,h=WindowHeight-5},
-					text_to_wrap=longInitText,
-				}
+					text=longInitText,
+				},
+				--]]
+				widgets.Scrollbar{
+					view_id='scrollbar',
+					frame={r=0},
+					on_scroll=self:callback('onScrollbar'),
+					visible=true,
+				},
+				
 			}
-			}
+		}
 	}
-	end
+	self.subviews.scrollbar:update(0, 5, 60)
+
+end
 
 
 
@@ -122,7 +171,7 @@ function StatsWindow:onRenderBody(dc)
 end
 StatScreen = defclass(StatScreen, gui.ZScreen)
 StatScreen.ATTRS {
-	focus_path = 'test2',
+	focus_path='minimal',
 	pass_movement_keys = true,
 	pass_mouse_clicks = false,
 }

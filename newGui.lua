@@ -32,7 +32,7 @@ MinimalWindow.ATTRS {
 local sinusAmplitude = 300
 local sinusFrequency = 0.2
 local sinusValues = {}
-for i = 0, 149 do
+for i = 0, 600 do
     local val = sinusAmplitude * math.sin(i * sinusFrequency)
     if val > 0 then
         table.insert(sinusValues, val )
@@ -118,7 +118,7 @@ function MinimalWindow:init()
                             frame={t=0, l=0, h=26, w=54},
                             pen={fg=COLOR_GREEN, bg=COLOR_BLACK},
                             years=years,
-                            values=sinusValues,
+                            values=values,
                             title="Example Stats",
                         },
                     },
@@ -167,14 +167,7 @@ if not dfhack.isMapLoaded() then
 end
 
 function MinimalScreen:onDismiss()
-    --dfhack.textures.deleteHandle(logo_textures1)
-    --dfhack.textures.deleteHandle(logo_dfhack)
-    --dfhack.textures.deleteHandle(handles)
-    --handles = nil
-    --logo_textures1 = nil
-    --logo_dfhack = nil
     view = nil
-    view2 = nil
 end
 
 view = view and view:raise() or MinimalScreen{}:show()
