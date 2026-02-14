@@ -22,8 +22,10 @@ CurveWidget.ATTRS{
     values = {},
     years = {}, -- Optional: array of years for x-axis labels
     pen = {ch = '᯽', fg = COLOR_WHITE, bg = COLOR_BLACK},
+    title = "Curve Widget",
 }
 
+local bottomOffset = 6
 local heightSupression = 4 -- number of rows to suppress at top of graph to prevent bars from touching top border
 
 local cornerCharBottomRight = 217
@@ -52,19 +54,44 @@ function sliderValueChanged()
     end
 end
 
+function CurveWidget:UpdateValueText()
+    local valueText = "Values: "
+    for i, v in ipairs(self.values) do
+        valueText = valueText .. string.format("%.2f ", v)
+    end
+    self.value_text = valueText
+end
+
 local sliderVal = 1
+local sliderVal2 = 1
 function CurveWidget:init()
+
+    local yearOptions={}
+    for i, year in ipairs(self.years) do
+        table.insert(yearOptions, {label=tostring(year), value=year})
+    end
+
+    local quarterOptions={
+        {label="Q1", value=1},
+        {label="Q2", value=2},
+        {label="Q3", value=3},
+        {label="Q4", value=4},
+    }
+
     self:addviews{
         widgets.Label{
             frame={t=0,l=20},
-            text="Adjust range:",
+            text=self.title,
         },
         widgets.Divider{
-            frame={t=1,l=0,r=0},
+            view_id='divider1',
+            frame_style_l=false,
+            frame_style_r=false,
+            frame={t=1,l=0,r=0,h=1},
         },
         widgets.Slider{
             view_id='range_slider',
-            frame={b=0},
+            frame={b=3},
             active=true,
             num_stops=16,
             get_idx_fn=function()
@@ -75,7 +102,25 @@ function CurveWidget:init()
                 sliderValueChanged()
                 self:updateLayout()
             end,
-        }
+        },
+        widgets.Divider{
+            view_id='divider2',
+            frame_style_l=false,
+            frame_style_r=false,
+            frame={b=2,l=0,h=1,w=54},
+        },
+        widgets.Slider{
+            view_id='range_slider',
+            frame={b=3},
+            active=true,
+            num_stops=16,
+            get_idx_fn=function()
+                return sliderVal2
+            end,
+            on_change=function(idx)
+                sliderVal2 = idx
+            end,
+        },
     }
 
 end
@@ -114,6 +159,8 @@ end
 ---@param pen table  # pen table (with fg, bg)
 function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
 
+
+
     -- Draw y axis ticks and value labels
     -- For value labels, we need min/max, so pass them as extra args (optional)
     local min, max = pen._min or 0, pen._max or 1
@@ -121,10 +168,10 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
     local longest_label_len = CurveWidget.getLongestLabelLength(dc, x, y, w, h, pen)
     local yTickPositions = {}
     for t = 1, nTicks do
-        local j = h-2-t*yTickDistance
-        if j + 2 >= 0 and j ~= h-2 then -- skip crossing
+        local j = h-bottomOffset-t*yTickDistance
+        if j + bottomOffset >= 0 and j ~= h-bottomOffset then -- skip crossing
             -- Draw value label (right-aligned, left of axis)
-            local value = min + (max-min) * (t*yTickDistance) / (math.min(max-min,h-heightSupression))
+            local value = min + (max-min) * ((t+2)*yTickDistance) / (math.min(max-min,h-heightSupression))
             local int_value = math.floor(value + 0.5)
             local label = tostring(int_value)
 
@@ -142,16 +189,16 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
     -- Offset axes by one tile into the negative x and y axis direction
     -- Draw horizontal axis (X axis) one tile above the bottom
     for i = 0, w-1 do
-        dc:seek(x + i+longest_label_len, y + h - 2):char(nil, dfhack.pen.parse{ch=horizontalLineChar, fg=pen.fg, bg=pen.bg})
+        dc:seek(x + i+longest_label_len, y + h - bottomOffset):char(nil, dfhack.pen.parse{ch=horizontalLineChar, fg=pen.fg, bg=pen.bg})
     end
     -- Draw vertical axis (Y axis) one tile right from the left
-    for j = 0, h-1 do
+    for j = 0, h-bottomOffset + 1 do
         if not yTickPositions[j] then
              dc:seek(x + 1 + longest_label_len, y + j):char(nil, dfhack.pen.parse{ch=verticalLineChar, fg=pen.fg, bg=pen.bg})
         end
     end
     -- Draw crossing at the new origin (one tile up and right from bottom-left)
-    dc:seek(x + 1 + longest_label_len, y + h - 2):char(nil, dfhack.pen.parse{ch=crossingLineChar, fg=pen.fg, bg=pen.bg})
+    dc:seek(x + 1 + longest_label_len, y + h - bottomOffset):char(nil, dfhack.pen.parse{ch=crossingLineChar, fg=pen.fg, bg=pen.bg})
     -- Draw x axis ticks and year labels
     local years = pen._years or nil
     local tick_idx = 1
@@ -159,7 +206,7 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
     for i = xTickDistance+1, w-1, xTickDistance do
         if i ~= 1 then -- skip crossing
             local tick_x = x + i + longest_label_len
-            CurveWidget.drawXAxisTick(dc, tick_x, y + h - 2, pen)
+            CurveWidget.drawXAxisTick(dc, tick_x, y + h - bottomOffset, pen)
             -- Draw year label centered under tick
             local year
             local valueIdx = startIdx + tick_idx
@@ -175,7 +222,7 @@ function CurveWidget.drawCoordinateSystem(dc, x, y, w, h, pen)
             end
             year = string.rep('0', 3 - #year) .. year
             local label_x = tick_x - 1
-            local label_y = y + h - 1
+            local label_y = y + h + 1 - bottomOffset
             if label_x >= 0 and label_x + 2 < x + w then
                 dc:seek(label_x, label_y):string(year, dfhack.pen.parse{fg=pen.fg, bg=pen.bg})
             end
@@ -234,15 +281,15 @@ function CurveWidget.drawValues(dc, rect, values, xOffset, yOffset)
     end
     local height = rect.height 
     local width = rect.width
-    local startIdx = sliderVal*xTickDistance or 1
+    local startIdx = (sliderVal-1)*xTickDistance+1 or 1
     --local valueIdx = startIdx + xTickDistance
     local endIdx = math.min(startIdx + width - 3, n)
     for i = startIdx, endIdx do
         local v = values[i]
         -- Calculate bar height (number of rows to fill)
-        local barHeight = math.floor((v - min) / math.max(1, max - min) *  (math.min(max-min,height-heightSupression)) + 0.5)
+        local barHeight = math.floor((v - min) / math.max(1, max - min) *  (math.min(max-min,height-heightSupression-bottomOffset)) + 0.5)
         for h = 0, barHeight - 1 do
-            local y = height - 2 - h -- -2 to stay above axis
+            local y = height - bottomOffset - h -- -2 to stay above axis
             local _pen = dfhack.pen.parse{ ch = barChar, fg = COLOR_WHITE, bg = COLOR_BLACK }
             dc:seek(i - startIdx + 1 + xOffset, y - yOffset):char(nil, _pen)
         end
