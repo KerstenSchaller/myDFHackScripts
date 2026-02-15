@@ -138,8 +138,19 @@ function Helper.parseTable(t, serializedString, parentPath)
 end
 
 function Helper.getValueFromSerializedString(serializedString, key)
-    local pattern = key .. ",(.-),"
+    --- Constructs a Lua pattern string for matching a value between two delimiters.
+    --- The pattern looks for the key followed by a comma, captures everything up to the next comma.
+    --- @param key string The key or prefix to search for before the first comma
+    --- @return string A Lua pattern string that captures content between commas in the format "key,(...),""
+    local pattern = key .. ",([^,]*),?"
     local value = serializedString:match(pattern)
+    if value == nil then
+        local pattern = key .. ",(.-),"
+        value = serializedString:match(pattern)
+        if value == nil then
+            return "value_not_found"
+        end
+    end
     return value
 end
 

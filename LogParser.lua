@@ -22,6 +22,7 @@ end
 
 
 function LogParser.logItemPartsToTable(parts)
+   local joinedPartsString = table.concat(parts, ",", 8)
    local t = {
       date = {
          day = parts[1],
@@ -35,9 +36,9 @@ function LogParser.logItemPartsToTable(parts)
       name = parts[12],
       desc = parts[14],
       maker = parts[16],
-      quality = parts[19],
-      value = parts[21],
-      artifact = parts[23]
+      quality = Helper.getValueFromSerializedString(joinedPartsString,"quality"),
+      value = Helper.getValueFromSerializedString(joinedPartsString,"value"),
+      artifact = Helper.getValueFromSerializedString(joinedPartsString,"artifact"),
    }
 
    return t
@@ -84,7 +85,7 @@ function LogParser.logUnitDeathPartsToTable(parts)
       },
       eventtype = parts[4],
       id = parts[6],
-      name = Helper.getValueFromSerializedString(joinedPartsString,"name"),
+      name = parts[8],
       race = Helper.getValueFromSerializedString(joinedPartsString,"race"),
       death_cause = Helper.getValueFromSerializedString(joinedPartsString,"death_cause"),
       death_type_value = Helper.getValueFromSerializedString(joinedPartsString,"death_type_value"),
@@ -97,7 +98,7 @@ end
 function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
 
    local killedByCitizen={}
-
+   local dwarfDeaths = {}
    for _, death in ipairs(unitDeathLines) do
       if yearFilter and tostring(death.date.year) ~= tostring(yearFilter) then
          goto continueDeaths
@@ -105,13 +106,16 @@ function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
       if death.killed_by_citizen == "true" then
          table.insert(killedByCitizen,death)
       end
-      
-
+      if death.race == "DWARF" then
+         table.insert(dwarfDeaths, death)
+      end
       ::continueDeaths::
    end
-
+   
+   dfhack.gui.showAnnouncement("Analyzing unit deaths for year: " .. #killedByCitizen)
    return {
-      KilledByCitizen = killedByCitizen
+      KilledByCitizen = killedByCitizen,
+      DwarfDeaths = dwarfDeaths
    }
 end
 
@@ -324,18 +328,20 @@ function LogParser.printJobInfo(jobInfo)
     end
 end
 
-function LogParser.analyzeItemCreated(itemCreatedLines, yearFilter)
+function LogParser.analyzeItems(itemCreatedLines, yearFilter)
    local itemTypeCount = {}
    local creatorCount = {}
    local itemsByCreator = {}
    local masterworkCount = 0
    local masterworkNames = {}
+   local artifacts = {}
+   local allItems = {}
 
    for _, item in ipairs(itemCreatedLines) do
       if yearFilter and tostring(item.date.year) ~= tostring(yearFilter) then
         goto continueItems
       end
-
+      table.insert(allItems, item)
       local itemType = item.type or "unknown"
       local creator = item.maker or "unknown"
       local quality = item.quality or ""
@@ -356,6 +362,14 @@ function LogParser.analyzeItemCreated(itemCreatedLines, yearFilter)
          masterworkCount = masterworkCount + 1
          table.insert(masterworkNames, name)
       end
+
+      -- Collect artifacts
+      if item.artifact == "true" then
+         table.insert(artifacts, name)
+      end
+
+      table.insert(allItems, item)
+
       ::continueItems::
    end
 
@@ -364,7 +378,9 @@ function LogParser.analyzeItemCreated(itemCreatedLines, yearFilter)
       CreatorCount = creatorCount,
       ItemsByCreator = itemsByCreator,
       MasterworkCount = masterworkCount,
-      MasterworkNames = masterworkNames
+      MasterworkNames = masterworkNames,
+      Artifacts = artifacts,
+      AllItems = allItems
    }
 
 
@@ -414,11 +430,25 @@ function LogParser.getYears()
 end
 
 local parsedLists = LogParser.parseAll()
-local itemInfo = LogParser.analyzeItemCreated(parsedLists.ItemCreated, 103)
+local itemInfo = LogParser.analyzeItems(parsedLists.ItemCreated, 103)
 local jobInfo = LogParser.analyzeJobCompleted(parsedLists.JobCompleted, 103)
 
 LogParser.printItemCreatedInformation(itemInfo)
 LogParser.printJobInfo(jobInfo)
+print("Citizens born in year 102: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 102).NewCitizens)
+print("Citizens born in year 103: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 103).NewCitizens)
+print("Citizens born in year 104: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 104).NewCitizens)
+print("Citizens born in year 105: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 105).NewCitizens)
+
+print("Dwarf deaths in year 102: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 102).DwarfDeaths)
+print("Dwarf deaths in year 103: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 103).DwarfDeaths)
+print("Dwarf deaths in year 104: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 104).DwarfDeaths)
+print("Dwarf deaths in year 105: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 105).DwarfDeaths)
+
+local deaths = LogParser.analyzeUnitDeaths(parsedLists.UnitDeath,104)
+for _, death in ipairs(deaths.DwarfDeaths) do
+   print("Dwarf death in year 104: " .. death.name .. " cause: " .. death.death_cause)
+end
 
 
 return LogParser
