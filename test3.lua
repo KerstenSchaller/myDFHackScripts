@@ -42,7 +42,7 @@ local WindowPosTop = 13
 
 StatsWindow = defclass(StatsWindow, widgets.Window)
 StatsWindow.ATTRS {
-	frame_title = 'Fortress Statistics',
+	frame_title = 'The Fortress Chronicle',
 	frame={w=WindowWidth, h=WindowHeight, l=WindowPosLeft, t=WindowPosTop},
 	autoarrange_subviews = true,
 	autoarrange_gap = 1,
@@ -51,7 +51,7 @@ StatsWindow.ATTRS {
 
 
 
-LogParser.parseAll()
+local parsedLogs = LogParser.parseAll()
 local years = {"All", table.unpack(LogParser.getYears())}
 --local years = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"}
 
@@ -88,20 +88,42 @@ local yearsPanel = widgets.Panel{
 		}
 
 
-					local tokens = {}
-					local token = {
-						text="Overview",
-						pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
-					}
+function addTokenisedText(tokens, text, fgColor, gap)
+	local token = {
+		text=text,
+		gap=gap or 0,
+		pen={fg=fgColor or COLOR_WHITE, bg=COLOR_BLACK},
+	}
+	table.insert(tokens, token)
+end
 
-					local token2 = {
-						text="page bla bla",
-						gap = 1,
-						pen = {fg=COLOR_RED, bg=COLOR_BLACK},
-					}
+function addLinebreak(tokens)
+	table.insert(tokens, NEWLINE)
+end
 
-					table.insert(tokens, token)
-					table.insert(tokens, token2)
+function createOverviewPageText(year)
+	local title = "In all years of the fortress, in glory or decline:"
+	if year then
+		title = "In year " .. year .. " of the fortress:"
+	end
+	local tokens = {}
+	addTokenisedText(tokens, title, COLOR_WHITE, 0)
+	addLinebreak(tokens)
+
+	-- new citizens
+	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
+	local str1=string.format("The fortress gained %d new citizens.", #citizenChanges.NewCitizens)
+	addTokenisedText(tokens, str1, COLOR_GREEN, 1)
+	addLinebreak(tokens)
+	-- list new citizens
+	local killedByCitizens = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
+	local str2=string.format("The dwarfes killed %d creatures.", #killedByCitizens.KilledByCitizen)
+	addTokenisedText(tokens, str2, COLOR_MAGENTA, 1)
+
+	return tokens
+end
+
+
 
 
 
@@ -109,45 +131,13 @@ local OverviewPage = widgets.Panel{
 					frame={t=0,l=0},
 					autoarrange_subviews=false,
 					autoarrange_gap=1,
-
-
-
 					subviews={
 						widgets.Label{
 							frame={t=0,l=0,r=0},
+							auto_height=true,
 							text_pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
-							text=tokens,
-						},
-						widgets.Label{
-							frame={t=3,l=0,r=0},
-							text_pen = {fg=COLOR_GREEN, bg=COLOR_BLACK},
-							text="Here goes Info about joined or born citizens\n\n\n\n",
-						},
-						widgets.Label{
-							frame={t=6,l=0,r=0},
-							text_pen = {fg=COLOR_RED, bg=COLOR_BLACK},
-							text="Here goes Info about died citizens",
-						},
-						widgets.Label{
-							frame={t=9,l=0,r=0},
-							text_pen = {fg=COLOR_GRAY, bg=COLOR_BLACK},
-							text="Here goes Info about created Items",
-						},
-						widgets.Label{
-							frame={t=12,l=0,r=0},
-							text_pen = {fg=COLOR_GRAY, bg=COLOR_BLACK},
-							text="Here goes Info about labors",
-						},
-						widgets.Label{
-							frame={t=15,l=0,r=0},
-							text_pen = {fg=COLOR_GRAY, bg=COLOR_BLACK},
-							text="Here goes Info about artifacts",
-						},
-						widgets.Label{
-							frame={t=18	,l=0,r=0},
-							text_pen = {fg=COLOR_GRAY, bg=COLOR_BLACK},
-							text="Here goes Info about sieges and other combat related stuff",
-						},
+							text=createOverviewPageText(),
+						}
 					}
 				}
 

@@ -94,6 +94,27 @@ function LogParser.logUnitDeathPartsToTable(parts)
    }
 end
 
+function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
+
+   local killedByCitizen={}
+
+   for _, death in ipairs(unitDeathLines) do
+      if yearFilter and tostring(death.date.year) ~= tostring(yearFilter) then
+         goto continueDeaths
+      end
+      if death.killed_by_citizen == "true" then
+         table.insert(killedByCitizen,death)
+      end
+      
+
+      ::continueDeaths::
+   end
+
+   return {
+      KilledByCitizen = killedByCitizen
+   }
+end
+
 -- Converts a split log line for [PetitionChange] into a structured table with key-value pairs
 function LogParser.logPetitionChangePartsToTable(parts)
    local newCond = parts[5] == "[NEW]" and true or false
@@ -129,8 +150,22 @@ function LogParser.listNumberOfDifferentMessages(logLines)
    end
 end
 
-
-
+function LogParser.LogCitizenPartsToTable(parts)
+   local t = {
+      date = {
+         day = parts[1],
+         month = parts[2],
+         year = parts[3]
+      },
+      type = parts[6],
+      id = parts[8],
+      name = parts[10],
+      race = parts[12],
+      age = parts[14],
+      sex = parts[16]
+   }
+   return t
+   end
 
 -- Parses logLines into lists according to their 4th element
 function LogParser.parseLogLinesByType(logLines)
@@ -152,7 +187,7 @@ function LogParser.parseLogLinesByType(logLines)
       elseif msgType == '[PetitionChange]' then
          table.insert(PetitionChange, LogParser.logPetitionChangePartsToTable(parts))
       elseif msgType == '[Citizens]' then
-         table.insert(Citizens, parts)
+         table.insert(Citizens, LogParser.LogCitizenPartsToTable(parts))
       elseif msgType == '[JobCompleted]' then
          table.insert(JobCompleted, LogParser.logJobCompletedPartsToTable(parts))
       elseif msgType == '[UnitDeath]' then
@@ -190,17 +225,62 @@ function LogParser.parseLogLinesByType(logLines)
    }
 end
 
+-- Helper to sort a table of key-value pairs by value descending
+local function getTopN(tbl, n)
+   local arr = {}
+   for k, v in pairs(tbl) do
+      table.insert(arr, {k, v})
+   end
+   table.sort(arr, function(a, b) return a[2] > b[2] end)
+   local result = {}
+   for i = 1, math.min(n, #arr) do
+      table.insert(result, arr[i])
+   end
+   return result
+end
 
-function LogParser.analyzeJobCompleted(jobCompletedLines)
+function LogParser.analyzeCitizens(citizenLines, yearFilter)
+   local newCitzens = {}
+
+   for _, citizen in ipairs(citizenLines) do
+      if yearFilter and tostring(citizen.date.year) ~= tostring(yearFilter) then
+         goto continueCitizens
+      end
+
+      -- check for new citizens and collect their info
+      if citizen.type == "newcitizen" then
+         local citizenInfo = {
+            id = citizen.id,
+            name = citizen.name,
+            race = citizen.race,
+            age = citizen.age,
+            sex = citizen.sex
+         }
+         table.insert(newCitzens, citizenInfo)
+      end
+
+
+      ::continueCitizens::
+
+   end
+   return {
+      NewCitizens = newCitzens
+   }
+end
+
+function LogParser.analyzeJobCompleted(jobCompletedLines, yearFilter)
     local jobTypeCount = {}
     local workerCount = {}
     local jobsByWorker = {}
 
-    for _, line in ipairs(jobCompletedLines) do
-        local parts = LogParser.splitCommaSeparated(line)
+    for _, job in ipairs(jobCompletedLines) do
+      if yearFilter and tostring(job.date.year) ~= tostring(yearFilter) then
+        goto continueJobs
+      end
+
         -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
-        local jobType = parts[6] or "unknown"
-        local worker = parts[8] or "unknown"
+        local jobType = job.type or "unknown"
+        local worker = job.worker or "unknown"
 
         -- Count job types
         jobTypeCount[jobType] = (jobTypeCount[jobType] or 0) + 1
@@ -211,30 +291,40 @@ function LogParser.analyzeJobCompleted(jobCompletedLines)
         -- Track job types by worker
         jobsByWorker[worker] = jobsByWorker[worker] or {}
         jobsByWorker[worker][jobType] = (jobsByWorker[worker][jobType] or 0) + 1
+
+        ::continueJobs::
     end
 
-    print("Total JobCompleted events: " .. #jobCompletedLines)
+    return {
+        JobTypeCount = jobTypeCount,
+        WorkerCount = workerCount,
+        JobsByWorker = jobsByWorker
+    }
+
+    
+end
+
+function LogParser.printJobInfo(jobInfo)
     print("\nMost common job types:")
-    for jobType, count in pairs(jobTypeCount) do
-        print(jobType .. ": " .. count)
+    for _, pair in ipairs(getTopN(jobInfo.JobTypeCount, 10)) do
+        print(pair[1] .. ": " .. pair[2])
     end
 
     print("\nMost active workers:")
-    for worker, count in pairs(workerCount) do
-        print(worker .. ": " .. count)
+    for _, pair in ipairs(getTopN(jobInfo.WorkerCount, 10)) do
+        print(pair[1] .. ": " .. pair[2])
     end
 
     print("\nJob types by worker:")
-    for worker, jobs in pairs(jobsByWorker) do
+    for worker, jobs in pairs(jobInfo.JobsByWorker) do
         print(worker .. ":")
-        for jobType, count in pairs(jobs) do
-            print("  " .. jobType .. ": " .. count)
+        for _, pair in ipairs(getTopN(jobs, 10)) do
+            print("  " .. pair[1] .. ": " .. pair[2])
         end
     end
 end
 
-
-function LogParser.analyzeItemCreated(itemCreatedLines)
+function LogParser.analyzeItemCreated(itemCreatedLines, yearFilter)
    local itemTypeCount = {}
    local creatorCount = {}
    local itemsByCreator = {}
@@ -242,6 +332,10 @@ function LogParser.analyzeItemCreated(itemCreatedLines)
    local masterworkNames = {}
 
    for _, item in ipairs(itemCreatedLines) do
+      if yearFilter and tostring(item.date.year) ~= tostring(yearFilter) then
+        goto continueItems
+      end
+
       local itemType = item.type or "unknown"
       local creator = item.maker or "unknown"
       local quality = item.quality or ""
@@ -262,51 +356,50 @@ function LogParser.analyzeItemCreated(itemCreatedLines)
          masterworkCount = masterworkCount + 1
          table.insert(masterworkNames, name)
       end
+      ::continueItems::
    end
 
-   -- Helper to sort a table of key-value pairs by value descending
-   local function getTopN(tbl, n)
-      local arr = {}
-      for k, v in pairs(tbl) do
-         table.insert(arr, {k, v})
-      end
-      table.sort(arr, function(a, b) return a[2] > b[2] end)
-      local result = {}
-      for i = 1, math.min(n, #arr) do
-         table.insert(result, arr[i])
-      end
-      return result
-   end
+   return {
+      ItemTypeCount = itemTypeCount,
+      CreatorCount = creatorCount,
+      ItemsByCreator = itemsByCreator,
+      MasterworkCount = masterworkCount,
+      MasterworkNames = masterworkNames
+   }
 
-   print("Total ItemCreated events: " .. #itemCreatedLines)
-   print("Number of masterwork items (quality 5): " .. masterworkCount)
-   if masterworkCount > 0 then
+
+
+end
+
+function LogParser.printItemCreatedInformation(itemInfo)
+   print("Number of masterwork items (quality 5): " .. itemInfo.MasterworkCount)
+   if itemInfo.MasterworkCount > 0 then
       print("Names of masterwork items:")
-      for _, n in ipairs(masterworkNames) do
+      for _, n in ipairs(itemInfo.MasterworkNames) do
          print("  " .. n)
       end
    end
    print("\nTop 10 most common item types:")
-   for _, pair in ipairs(getTopN(itemTypeCount, 10)) do
+   for _, pair in ipairs(getTopN(itemInfo.ItemTypeCount, 10)) do
       print(pair[1] .. ": " .. pair[2])
    end
 
    print("\nTop 10 most active creators:")
-   for _, pair in ipairs(getTopN(creatorCount, 10)) do
+   for _, pair in ipairs(getTopN(itemInfo.CreatorCount, 10)) do
       print(pair[1] .. ": " .. pair[2])
    end
 
    print("\nTop 10 creators and their top item types:")
-   local topCreators = getTopN(creatorCount, 10)
+   local topCreators = getTopN(itemInfo.CreatorCount, 10)
    for _, pair in ipairs(topCreators) do
       local creator = pair[1]
-      print(creator .. ":")
-      local topItems = getTopN(itemsByCreator[creator], 10)
+      local topItems = getTopN(itemInfo.ItemsByCreator[creator], 1)
       for _, itemPair in ipairs(topItems) do
-         --print("  " .. itemPair[1] .. ": " .. itemPair[2])
+         print(creator .. ": " .. itemPair[1] .. ": " .. itemPair[2])
       end
    end
 end
+
 
 local parsedLists = nil
 
@@ -320,7 +413,12 @@ function LogParser.getYears()
    return parsedLists.Years
 end
 
+local parsedLists = LogParser.parseAll()
+local itemInfo = LogParser.analyzeItemCreated(parsedLists.ItemCreated, 103)
+local jobInfo = LogParser.analyzeJobCompleted(parsedLists.JobCompleted, 103)
 
+LogParser.printItemCreatedInformation(itemInfo)
+LogParser.printJobInfo(jobInfo)
 
 
 return LogParser
