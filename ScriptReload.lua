@@ -15,3 +15,4 @@ package.loaded["test2"] = nil
 package.loaded["test3"] = nil
 package.loaded["test4"] = nil
 package.loaded["LogParser"] = nil
+package.loaded["MaterialHelper"] = nil

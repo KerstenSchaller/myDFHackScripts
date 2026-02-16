@@ -16,7 +16,7 @@ local view
 
 
 
-local WindowWidth = 85
+local WindowWidth = 120
 local WindowHeight = 40
 local WindowPosLeft = 40
 local WindowPosTop = 13
@@ -99,7 +99,11 @@ end
 
 function createPopulationPageText(year)
 	local tokens = {}
-	addTokenisedText(tokens, "Population details for year " .. (year or "All") .. ":", COLOR_WHITE, 0, true)
+	local title = "In all years of the fortress, in glory or decline:"
+	if year then
+		title = "In year " .. year .. " of the fortress:"
+	end
+	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
 	addLinebreak(tokens)
 
 	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
@@ -119,19 +123,140 @@ function createPopulationPageText(year)
 		addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
 		for _, death in ipairs(unitDeaths.DwarfDeaths) do
 			-- age is a float string with . divider, we want to remove the decimal part for display
-			local text = string.format("%s, a %s years old %s %s", death.name, "TODO", "TODO", death.race)
+			local text = string.format("%s, a %s years old %s %s died of %s", death.name, "TODO", "TODO", death.race, death.death_cause)
 			addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
 		end
 	else
 		addTokenisedText(tokens, "No dwarf deaths recorded.", COLOR_MAGENTA, 4, true)
 	end
 
+	return tokens
+end
 
+function createArtifactsPageText(year)
+	local tokens = {}
+	local title = "In all years of the fortress, in glory or decline:"
+	if year then
+		title = "In year " .. year .. " of the fortress:"
+	end
+	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
+	addLinebreak(tokens)
 
+	local itemInfo = LogParser.analyzeItems(parsedLogs.ItemCreated, year)
+	if #itemInfo.Artifacts > 0 then
+		for _, artifact in ipairs(itemInfo.Artifacts) do
+			local text = string.format("%s, a %s created by %s", artifact.desc, artifact.name, artifact.maker)
+			addTokenisedText(tokens, text, COLOR_YELLOW, 4, true)
+		end
+	else
+		addTokenisedText(tokens, "No artifacts recorded.", COLOR_YELLOW, 4, true)
+	end
 
 	return tokens
 end
 
+function createEconomyPageText(year)
+	local tokens = {}
+	local title = "In all years of the fortress, in glory or decline:"
+	if year then
+		title = "In year " .. year .. " of the fortress:"
+	end
+	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
+	addLinebreak(tokens)
+	
+	-- list 10 most produced item types
+	addTokenisedText(tokens, "Most Produced items:", COLOR_WHITE, 4, true)
+	local itemInfo = LogParser.analyzeItems(parsedLogs.ItemCreated, year)
+	for _, pair in ipairs(LogParser.getTopN(itemInfo.ItemTypeCount, 10)) do
+		local itemType, count = pair[1], pair[2]
+		local text = string.format("%s: %d", itemType, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+	
+	
+	-- list unique masterwork names
+	addTokenisedText(tokens, "Masterwork items produced:", COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(itemInfo.UniqueMasterworkNames, itemInfo.UniqueCount)) do
+		local name, count = pair[1], pair[2]
+		local text = string.format("%d %ss ", count, name)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	-- list all masterwork material types and their counts
+	addTokenisedText(tokens, "Not ready, waits for mat index and mat type to be implemented in items logger", COLOR_RED, 4, true)
+	addTokenisedText(tokens,tostring(#itemInfo.MasterworkMaterialTypes).. "Masterwork material types produced:", COLOR_WHITE, 4, true)
+	for materialType,count in pairs(itemInfo.MasterworkMaterialTypes) do
+		local text = string.format("%s: %d", materialType, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	--list top masterwork creators
+	local masterworkCreators = itemInfo.MasterworkCreators
+	addTokenisedText(tokens, string.format("Top Masterwork Creators:"), COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(masterworkCreators, 10)) do
+		local creator, count = pair[1], pair[2]
+		local text = string.format("%s created %d masterworks", creator, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+
+	return tokens
+end
+
+function createLaborPageText(year)
+	local tokens = {}
+	local title = "In all years of the fortress, in glory or decline:"
+	if year then
+		title = "In year " .. year .. " of the fortress:"
+	end
+	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
+	addLinebreak(tokens)
+
+	local jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted, year)
+	addTokenisedText(tokens, "Most common job types", COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(jobInfos.JobTypeCount, 10)) do
+		local jobType, count = pair[1], pair[2]
+		local text = string.format("%s: %d", jobType, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	addTokenisedText(tokens,"Most active workers:", COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(jobInfos.WorkerCount, 10)) do
+		local worker, count = pair[1], pair[2]
+		local text = string.format("%s: %d jobs", worker, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	addTokenisedText(tokens,"Best miners:", COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(jobInfos.DiggingCountByWorker, 10)) do
+		local worker, count = pair[1], pair[2]
+		local text = string.format("%s: %d digging jobs", worker, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	addTokenisedText(tokens,"Best smoothers:", COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(jobInfos.SmoothStoneCountByWorker, 10)) do
+		local worker, count = pair[1], pair[2]
+		local text = string.format("%s: %d smoothing jobs", worker, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	addTokenisedText(tokens,"Best encravers:", COLOR_WHITE, 4, true)
+	for _, pair in ipairs(LogParser.getTopN(jobInfos.EncraveCountByWorker, 10)) do
+		local worker, count = pair[1], pair[2]
+		local text = string.format("%s: %d encraving jobs", worker, count)
+		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+	end
+	addLinebreak(tokens)
+
+	return tokens
+end
 
 local OverviewPage = widgets.Panel{
 					frame={t=0,l=0},
@@ -163,19 +288,50 @@ local PopulationPage = widgets.Panel{
 					}
 				}
 
-local EconomyPage = widgets.Label{
+local EconomyPage = widgets.Panel{
 					frame={t=0,l=0},
-					text="Economy page",
+					autoarrange_subviews=false,
+					autoarrange_gap=1,
+					subviews={
+						widgets.Label{
+							view_id='economyLabel',
+							frame={t=0,l=0,r=0},
+							auto_height=true,
+							text_pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
+							text=createEconomyPageText(),
+						}
+					}
 				}
 
-local LaborPage = widgets.Label{
+local LaborPage = widgets.Panel{
 					frame={t=0,l=0},
-					text="Labor page",
+					autoarrange_subviews=false,
+					autoarrange_gap=1,
+					subviews={
+						widgets.Label{
+							view_id='laborLabel',
+							frame={t=0,l=0,r=0},
+							auto_height=true,
+							text_pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
+							text=createLaborPageText(),
+						}
+					}
 				}
 
-local ArtifactsPage = widgets.Label{
+
+local ArtifactsPage = widgets.Panel{
 					frame={t=0,l=0},
-					text="Artifacts page",
+					autoarrange_subviews=false,
+					autoarrange_gap=1,
+					subviews={
+						widgets.Label{
+							view_id='artifactsLabel',
+							frame={t=0,l=0,r=0},
+							auto_height=true,
+							text_pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
+							text=createArtifactsPageText(),
+						}
+					}
 				}
 
 local WarfarePage = widgets.Label{
@@ -209,6 +365,10 @@ function updatePanels(year)
 	end
 	OverviewPage.subviews.overviewLabel:setText(createOverviewPageText(year))
 	PopulationPage.subviews.populationLabel:setText(createPopulationPageText(year))
+	EconomyPage.subviews.economyLabel:setText(createEconomyPageText(year))
+	ArtifactsPage.subviews.artifactsLabel:setText(createArtifactsPageText(year))
+	LaborPage.subviews.laborLabel:setText(createLaborPageText(year))
+
 
 	self:updateLayout()
 end

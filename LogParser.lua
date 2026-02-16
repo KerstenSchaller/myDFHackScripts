@@ -8,7 +8,7 @@ package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.
 
 local Helper = require('Helper')
 local logHandler = require('LogHandler')
-
+local MaterialHelper = require('MaterialHelper')
 
 local LogParser = {}
 
@@ -32,10 +32,10 @@ function LogParser.logItemPartsToTable(parts)
       eventtype = parts[4],
       id = parts[6],
       type = parts[8],
-      material = parts[10],
-      name = parts[12],
-      desc = parts[14],
-      maker = parts[16],
+      material = Helper.getValueFromSerializedString(joinedPartsString,"material"),
+      name = Helper.getValueFromSerializedString(joinedPartsString,"name"),
+      desc = Helper.getValueFromSerializedString(joinedPartsString,"desc"),
+      maker = Helper.getValueFromSerializedString(joinedPartsString,"maker"),
       quality = Helper.getValueFromSerializedString(joinedPartsString,"quality"),
       value = Helper.getValueFromSerializedString(joinedPartsString,"value"),
       artifact = Helper.getValueFromSerializedString(joinedPartsString,"artifact"),
@@ -112,7 +112,6 @@ function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
       ::continueDeaths::
    end
    
-   dfhack.gui.showAnnouncement("Analyzing unit deaths for year: " .. #killedByCitizen)
    return {
       KilledByCitizen = killedByCitizen,
       DwarfDeaths = dwarfDeaths
@@ -230,7 +229,7 @@ function LogParser.parseLogLinesByType(logLines)
 end
 
 -- Helper to sort a table of key-value pairs by value descending
-local function getTopN(tbl, n)
+function LogParser.getTopN(tbl, n)
    local arr = {}
    for k, v in pairs(tbl) do
       table.insert(arr, {k, v})
@@ -272,37 +271,57 @@ function LogParser.analyzeCitizens(citizenLines, yearFilter)
    }
 end
 
-function LogParser.analyzeJobCompleted(jobCompletedLines, yearFilter)
-    local jobTypeCount = {}
-    local workerCount = {}
-    local jobsByWorker = {}
+function LogParser.analyzeJobs(jobCompletedLines, yearFilter)
+   local jobTypeCount = {}
+   local workerCount = {}
+   local jobsByWorker = {}
+   local diggingCountByWorker = {}
+   local smoothStoneCountByWorker = {}
+   local encraveCountByWorker = {}
 
-    for _, job in ipairs(jobCompletedLines) do
+   for _, job in ipairs(jobCompletedLines) do
       if yearFilter and tostring(job.date.year) ~= tostring(yearFilter) then
-        goto continueJobs
+         goto continueJobs
+      end
+      if job.name == "Dig" or job.name == "Dig channel" or job.name == "Dig ramp" then
+         diggingCountByWorker[job.worker] = (diggingCountByWorker[job.worker] or 0) + 1
+         goto continueJobs
+      end
+      if job.name == "Smooth floor" or job.name == "Smooth wall" then
+         smoothStoneCountByWorker[job.worker] = (smoothStoneCountByWorker[job.worker] or 0) + 1
+         goto continueJobs
+      end
+      if job.name == "Detail floor" or job.name == "Detail wall" then
+         encraveCountByWorker[job.worker] = (encraveCountByWorker[job.worker] or 0) + 1
+         goto continueJobs
+      end
+      -- skip eat,drink, and sleep jobs to focus on labor jobs
+      if job.name == "Eat" or job.name == "Drink" or job.name == "Sleep" then
+         goto continueJobs
       end
 
-        -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
-        local jobType = job.type or "unknown"
-        local worker = job.worker or "unknown"
-
-        -- Count job types
-        jobTypeCount[jobType] = (jobTypeCount[jobType] or 0) + 1
-
-        -- Count jobs per worker
-        workerCount[worker] = (workerCount[worker] or 0) + 1
-
-        -- Track job types by worker
-        jobsByWorker[worker] = jobsByWorker[worker] or {}
-        jobsByWorker[worker][jobType] = (jobsByWorker[worker][jobType] or 0) + 1
-
-        ::continueJobs::
-    end
+      -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
+      -- Extract job type and worker name from the log line
+      -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
+      local jobType = job.name or "unknown"
+      local worker = job.worker or "unknown"
+      -- Count job types
+      jobTypeCount[jobType] = (jobTypeCount[jobType] or 0) + 1
+      -- Count jobs per worker
+      workerCount[worker] = (workerCount[worker] or 0) + 1
+      -- Track job types by worker
+      jobsByWorker[worker] = jobsByWorker[worker] or {}
+      jobsByWorker[worker][jobType] = (jobsByWorker[worker][jobType] or 0) + 1
+      ::continueJobs::
+   end
 
     return {
         JobTypeCount = jobTypeCount,
         WorkerCount = workerCount,
-        JobsByWorker = jobsByWorker
+        JobsByWorker = jobsByWorker,
+        DiggingCountByWorker = diggingCountByWorker,
+        SmoothStoneCountByWorker = smoothStoneCountByWorker,
+        EncraveCountByWorker = encraveCountByWorker
     }
 
     
@@ -310,19 +329,19 @@ end
 
 function LogParser.printJobInfo(jobInfo)
     print("\nMost common job types:")
-    for _, pair in ipairs(getTopN(jobInfo.JobTypeCount, 10)) do
+    for _, pair in ipairs(LogParser.getTopN(jobInfo.JobTypeCount, 10)) do
         print(pair[1] .. ": " .. pair[2])
     end
 
     print("\nMost active workers:")
-    for _, pair in ipairs(getTopN(jobInfo.WorkerCount, 10)) do
+    for _, pair in ipairs(LogParser.getTopN(jobInfo.WorkerCount, 10)) do
         print(pair[1] .. ": " .. pair[2])
     end
 
     print("\nJob types by worker:")
     for worker, jobs in pairs(jobInfo.JobsByWorker) do
         print(worker .. ":")
-        for _, pair in ipairs(getTopN(jobs, 10)) do
+        for _, pair in ipairs(LogParser.getTopN(jobs, 10)) do
             print("  " .. pair[1] .. ": " .. pair[2])
         end
     end
@@ -333,9 +352,11 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
    local creatorCount = {}
    local itemsByCreator = {}
    local masterworkCount = 0
-   local masterworkNames = {}
+   local masterworks = {}
    local artifacts = {}
    local allItems = {}
+   local uniqueCount = 0
+   local masterworkMaterialTypes = {}
 
    for _, item in ipairs(itemCreatedLines) do
       if yearFilter and tostring(item.date.year) ~= tostring(yearFilter) then
@@ -360,12 +381,12 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
       -- Count masterwork items (quality == '5') and collect their names
       if tostring(quality) == '5' then
          masterworkCount = masterworkCount + 1
-         table.insert(masterworkNames, name)
+         table.insert(masterworks, item)
       end
 
       -- Collect artifacts
       if item.artifact == "true" then
-         table.insert(artifacts, name)
+         table.insert(artifacts, item)
       end
 
       table.insert(allItems, item)
@@ -373,14 +394,50 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
       ::continueItems::
    end
 
+   -- gather masterwork creator info and sort by most masterworks created
+   local uniqueMasterworkNames = {}
+   local masterworkCreators = {}
+   local numberOfMasterWorkCreators = 0
+   for _, item in ipairs(masterworks) do
+      local creator = item.maker or "unknown"
+      masterworkCreators[creator] = (masterworkCreators[creator] or 0) + 1
+      -- gather material types of masterworks and count them
+      local material = MaterialHelper.typeInfoByItemId(item.id) or "unknown"
+      if masterworkMaterialTypes[material] then
+         masterworkMaterialTypes[material] = masterworkMaterialTypes[material]  + 1
+      else
+         masterworkMaterialTypes[material] = 1
+      end
+      
+
+      -- track unique masterwork names and count how many unique masterwork creators there are
+      if not uniqueMasterworkNames[item.name] then
+         uniqueMasterworkNames[item.name] = 1
+         numberOfMasterWorkCreators = numberOfMasterWorkCreators + 1
+         uniqueCount = uniqueCount + 1
+      else
+         uniqueMasterworkNames[item.name] = uniqueMasterworkNames[item.name] + 1
+      end
+
+   end
+   local sortedMasterworkCreators = LogParser.getTopN(masterworkCreators, #masterworkCreators)
+
+
+
+
    return {
       ItemTypeCount = itemTypeCount,
       CreatorCount = creatorCount,
       ItemsByCreator = itemsByCreator,
       MasterworkCount = masterworkCount,
-      MasterworkNames = masterworkNames,
+      Masterworks = masterworks,
       Artifacts = artifacts,
-      AllItems = allItems
+      AllItems = allItems,
+      MasterworkCreators = masterworkCreators,
+      UniqueMasterworkNames = uniqueMasterworkNames,
+      MasterworkMaterialTypes = masterworkMaterialTypes,
+      UniqueCount = uniqueCount
+
    }
 
 
@@ -391,25 +448,25 @@ function LogParser.printItemCreatedInformation(itemInfo)
    print("Number of masterwork items (quality 5): " .. itemInfo.MasterworkCount)
    if itemInfo.MasterworkCount > 0 then
       print("Names of masterwork items:")
-      for _, n in ipairs(itemInfo.MasterworkNames) do
-         print("  " .. n)
+      for _, item in ipairs(itemInfo.Masterworks) do
+         print("  " .. item.name)
       end
    end
    print("\nTop 10 most common item types:")
-   for _, pair in ipairs(getTopN(itemInfo.ItemTypeCount, 10)) do
+   for _, pair in ipairs(LogParser.getTopN(itemInfo.ItemTypeCount, 10)) do
       print(pair[1] .. ": " .. pair[2])
    end
 
    print("\nTop 10 most active creators:")
-   for _, pair in ipairs(getTopN(itemInfo.CreatorCount, 10)) do
+   for _, pair in ipairs(LogParser.getTopN(itemInfo.CreatorCount, 10)) do
       print(pair[1] .. ": " .. pair[2])
    end
 
    print("\nTop 10 creators and their top item types:")
-   local topCreators = getTopN(itemInfo.CreatorCount, 10)
+   local topCreators = LogParser.getTopN(itemInfo.CreatorCount, 10)
    for _, pair in ipairs(topCreators) do
       local creator = pair[1]
-      local topItems = getTopN(itemInfo.ItemsByCreator[creator], 1)
+      local topItems = LogParser.getTopN(itemInfo.ItemsByCreator[creator], 1)
       for _, itemPair in ipairs(topItems) do
          print(creator .. ": " .. itemPair[1] .. ": " .. itemPair[2])
       end
@@ -431,7 +488,7 @@ end
 
 local parsedLists = LogParser.parseAll()
 local itemInfo = LogParser.analyzeItems(parsedLists.ItemCreated, 103)
-local jobInfo = LogParser.analyzeJobCompleted(parsedLists.JobCompleted, 103)
+local jobInfo = LogParser.analyzeJobs(parsedLists.JobCompleted, 103)
 
 LogParser.printItemCreatedInformation(itemInfo)
 LogParser.printJobInfo(jobInfo)

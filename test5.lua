@@ -18,10 +18,94 @@ function splitStringIntoLines(text, max_width)
     return lines
 end
 
-local longString = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-local shortString = "Lorem ipsum dolor sit."
+local dfhack = require('dfhack')
 
-local lines = splitStringIntoLines(longString, 50)
-for i, line in ipairs(lines) do
-    print(string.format("Line %d: %s", i, line))
+local allInorganics = df.global.world.raws.inorganics.all
+
+function getItemById(id)
+    local items = df.global.world.items.all
+    for _, item in ipairs(items) do
+        if item.id == id then
+            return item
+        end
+    end
 end
+
+function printMaterialInfo(mat_info)
+    for k, v in pairs(mat_info) do
+        if type(v) ~= "table" then
+            print(k .. "= " .. tostring(v))
+        else
+            print(k .. ":")
+            for sub_k, sub_v in pairs(v) do
+                print("  " .. sub_k .. "- " .. tostring(sub_v))
+            end
+        end
+    end
+    print("")
+    print("")
+end
+
+local woodItem = getItemById(5855) -- replace with actual item ID
+local anotherWoodItem = getItemById(20136) -- replace with actual item ID
+
+local barItem = getItemById(10178) -- replace with actual item ID
+local anotherBarItem = getItemById(38287) -- replace with actual item ID
+local rockItem = getItemById(3906) -- replace with actual item ID
+local anotherRockItem = getItemById(3833) -- replace with actual item ID
+local leatherItem = getItemById(15268) -- replace with actual item ID
+local gemItem = getItemById(24595) -- replace with actual item ID
+
+
+
+local matHelper = require('MaterialHelper')
+
+
+local mat_info_wood = dfhack.matinfo.decode(woodItem.mat_type, woodItem.mat_index)
+print("Material: " .. mat_info_wood.material.state_name[0])
+--printMaterialInfo(mat_info_wood)
+local matName = matHelper.typeInfoByItemId(woodItem.id)
+print("Material type: " .. matName)
+
+local mat_info_another_wood = dfhack.matinfo.decode(anotherWoodItem.mat_type, anotherWoodItem.mat_index)
+print("Material: " .. mat_info_another_wood.material.state_name[0])
+--printMaterialInfo(mat_info_another_wood)
+local matNameAnotherWood = matHelper.typeInfoByItemId(anotherWoodItem)
+print("Material type: " .. matNameAnotherWood)
+
+local mat_info_leather = dfhack.matinfo.decode(leatherItem.mat_type, leatherItem.mat_index)
+print("Material: " .. mat_info_leather.material.state_name[0])
+--printMaterialInfo(mat_info_leather)
+local matNameLeather = matHelper.typeInfoByItemId(leatherItem)
+print("Material type: " .. matNameLeather)
+
+local mat_info_bar = dfhack.matinfo.decode(barItem.mat_type, barItem.mat_index)
+print("Material: " .. mat_info_bar.material.state_name[0])
+--printMaterialInfo(mat_info_bar)
+local matNameBar = matHelper.typeInfoByItemId(barItem)
+print("Material type: " .. matNameBar)
+
+local mat_info_another_bar = dfhack.matinfo.decode(anotherBarItem.mat_type, anotherBarItem.mat_index)
+print("Material: " .. mat_info_another_bar.material.state_name[0])
+--printMaterialInfo(mat_info_another_bar)
+local matNameAnotherBar = matHelper.typeInfoByItemId(anotherBarItem)
+print("Material type: " .. matNameAnotherBar)
+
+local mat_info_rock = dfhack.matinfo.decode(rockItem.mat_type, rockItem.mat_index)
+print("Material: " .. mat_info_rock.material.state_name[0])
+--printMaterialInfo(mat_info_rock)
+local matNameRock = matHelper.typeInfoByItemId(rockItem)
+print("Material type: " .. matNameRock)
+
+local mat_info_another_rock = dfhack.matinfo.decode(anotherRockItem.mat_type, anotherRockItem.mat_index)
+print("Material: " .. mat_info_another_rock.material.state_name[0])
+--printMaterialInfo(mat_info_another_rock)
+local matNameAnotherRock = matHelper.typeInfoByItemId(anotherRockItem)
+print("Material type: " .. matNameAnotherRock)
+
+local mat_info_gem = dfhack.matinfo.decode(gemItem.mat_type, gemItem.mat_index)
+print("Material: " .. mat_info_gem.material.state_name[0])
+--printMaterialInfo(mat_info_gem)
+local matNameGem = matHelper.typeInfoByItemId(gemItem)
+print("Material type: " .. matNameGem)
+
