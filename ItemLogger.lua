@@ -4,6 +4,7 @@ package.path = script_dir .. ';' .. package.path
 
 local LogHandler = require('LogHandler')
 local Helper = require('Helper')
+local Json = require('Json')
 
 local ItemLogger = {}
 
@@ -22,29 +23,29 @@ function ItemLogger.log(item_id)
 	local makerId = item.maker
 	local maker = Helper.getMakerName(makerId)
 	local quality = item:getQuality()
-	df.gui.showAnnouncement(string.format("Item quality: %s ", tostring(quality)))
-	LogHandler.write_log(string.format("Item quality enum: %s ", tostring(df.item_quality[quality])))
 	local value = dfhack.items.getValue(item)
 	local isArtifact = item.flags.artifact
 
 
 	local item_descr = dfhack.items.getReadableDescription(item)
-	local msg = string.format(
-		'[ItemCreated],id,%d,type,%s,material,%s,name,%s,desc,%s,maker,%s,quality,%s,value,%s,artifact,%s',
-		item_id,
-		item_type,
-		mat_name,
-		item_name,
-		item_descr,
-		maker,
-		quality,
-		value,
-		tostring(isArtifact)
-	)
+	local msg = {
+		item_id = item_id,
+		item_type = item_type,
+		material = mat_name,
+		item_name = item_name,
+		item_descr = item_descr,
+		maker = maker,
+		quality = quality,
+		value = value,
+		is_artifact = isArtifact
+	}
 
-	msg = filterAnnouncement(msg, {"type=REMAINS", "name=magma", "type=SEEDS"})
 
-	LogHandler.write_log(msg)
+	if msg.name == "magma" or msg.type == "REMAINS" or msg.type == "SEEDS" then
+		return
+	end
+
+	LogHandler.write_log("ItemCreated", msg)
 end
 
 return ItemLogger

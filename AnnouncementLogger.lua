@@ -7,15 +7,16 @@ package.path = script_dir .. ';' .. package.path
 
 local last_announcement_msg = ""
 local LogHandler = require('LogHandler')
+local Json = require('Json')
 
 
 function parseAnnouncements(announcement)
     -- Here you can add more complex parsing logic if needed
     -- For now, we just log the announcement directly
     announcement = filterAnnouncement(announcement,{ "has been completed", modId, "ignore" })
-
+    
     if announcement ~= "" then
-        LogHandler.write_log(announcement)
+        LogHandler.write_log("Announcement",announcement)
     end
     
 end
@@ -23,7 +24,7 @@ end
 function filterAnnouncement(announcement, exclude_keywords)
     --filter for certain keywords to exclude
     for _, keyword in ipairs(exclude_keywords) do
-        if string.find(announcement, keyword) then
+        if string.find(announcement.text, keyword) then
             return ""
         end
     end
@@ -49,7 +50,7 @@ function AnnouncementWatcher.watch()
     if string.find(reports[#reports - 1].text, "Announcement")  then
         return
     end
-    local msg = string.format("[Announcement],id,%d,text,%s,repeat_count,%d",reports[#reports - 1].id, reports[#reports - 1].text, reports[#reports - 1].repeat_count)
+    local msg = { id = reports[#reports - 1].id, text = reports[#reports - 1].text, repeat_count = reports[#reports - 1].repeat_count }
     parseAnnouncements(msg)
 end
 

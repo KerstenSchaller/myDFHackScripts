@@ -5,6 +5,7 @@ local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/'
 package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.path
 local LogHandler = require('LogHandler')
 local Helper = require('Helper')
+local Json = require('Json')
 
 local citizens = {}
 
@@ -28,14 +29,15 @@ end
         function(oldCount, newCount)
             if oldCount ~= newCount then
                 dfhack.gui.showAnnouncement(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount), COLOR_WHITE)
-                LogHandler.write_log(string.format("[Citizens],type,countchange,from,%d,to,%d", oldCount, newCount))
+                local msgJson = { type = "countchange", from = oldCount, to = newCount}
+                LogHandler.write_log("Citizen", msgJson)
             end
         end,
         function(unit)
             local male = dfhack.units.isMale(unit)
             local sex = male and "male" or "female"
-            LogHandler.write_log(string.format("[Citizens],type,newcitizen,id,%d,name,%s,race,%s,age,%s,sex,%s", unit.id,
-                dfhack.translation.translateName(unit.name), dfhack.units.getRaceName(unit), dfhack.units.getAge(unit), sex))
+            local msgJson = { type = "newcitizen", id = unit.id, name = dfhack.translation.translateName(unit.name), race = dfhack.units.getRaceName(unit), age = dfhack.units.getAge(unit), sex = sex}
+            LogHandler.write_log("Citizen", msgJson)
         end,
         function(x,z)
             return false

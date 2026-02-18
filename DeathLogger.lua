@@ -5,6 +5,7 @@ package.path = script_dir .. ';' .. package.path
 
 local LogHandler = require('LogHandler')
 local Helper = require('Helper')
+local Json = require('Json')
 
 local DeathLogger = {}
 
@@ -22,19 +23,19 @@ function DeathLogger.log(unit_id)
 	local killer = Helper.getNameOfKillerByVictimId(unit_id)
 	local killedByCitizen = Helper.isUnitCitizen(killer)       
 	local name = dfhack.translation.translateName(unit.name) or 'unknown'
-	local msg = string.format(
-		'[UnitDeath],id,%s,name,%s,race,%s,death_cause,%s,killer,%s,killed_by_citizen,%s,killer_race,%s',
-		unit_id_str,
-		name,
-		unit_race,
-		unit_death_cause,
-		killer,
-		tostring(killedByCitizen),
-        killer_race
-		
-	)
+	local msg = {
+		victim_id = unit_id_str,
+		victim_name = name,
+		victim_race = unit_race,
+		victim_age = unit_age,
+		victim_death_cause = unit_death_cause,
+		killer = killer,
+		killed_by_citizen = tostring(killedByCitizen),
+        killer_race = killer_race
+	}
+
 	
-	LogHandler.write_log(msg)
+	LogHandler.write_log("UnitDeath", msg)
 
 end
 

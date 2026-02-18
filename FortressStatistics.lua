@@ -20,6 +20,7 @@ local InvasionLogger = require('InvasionLogger')
 local BookAnnouncer = require('AnnounceBooks')
 local CitezenLogger = require('CitizenLogger')
 local PetitionLogger = require('PetitionLogger')
+local Json = require('Json')
 -------------------------------------------------------------------------------------------------------------------------------------
 
 eventful.enableEvent(eventful.eventType.ITEM_CREATED, 1)
@@ -31,7 +32,7 @@ local args = {...}
 local command = args[1] or 'help'
 
 
-local modId = "DF_STATS"
+local modId = "DF_CHRONICHLE"
 
 local Version = "0.1.0"
 print('DF_LOGGER_SUB v' .. Version .. ' loading...')
@@ -140,8 +141,9 @@ local function setupLogging()
         JobLogger.log(job)
     end
     eventful.onInvasion[modId] = function(invasion)
-        local msg = string.format("[Invasion],civ_id,%d,site_id,%d,size,%d", invasion.civ_id, invasion.site_id, invasion.size)
-        LogHandler.write_log(msg)
+        local msg = { civ_id=invasion.civ_id, site_id=invasion.site_id, size=invasion.size}
+
+        LogHandler.write_log("Invasion", msg)
     end
 
     print("Item announcer enabled.")

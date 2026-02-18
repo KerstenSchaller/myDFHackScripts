@@ -9,7 +9,7 @@ function Helper.date()
     local day = dfhack.world.ReadCurrentDay()
     local month = dfhack.world.ReadCurrentMonth()
     local year = dfhack.world.ReadCurrentYear()
-    return string.format("%d,%d,%d",day, month,year)
+    return {day = day, month = month, year = year}
 end
 
 function Helper.getMakerName(makerId)

@@ -3,8 +3,10 @@ local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/?.lua'
 package.path = script_dir .. ';' .. package.path
 
 local LogHandler = require('LogHandler')
+local Json = require('Json')
 
 local JobLogger = {}
+
 
 
 function JobLogger.log(job)
@@ -16,14 +18,14 @@ function JobLogger.log(job)
 	local mat = dfhack.matinfo.decode(job)
 	local mat_name = mat and mat:toString() or 'unknown material'
 
-	local msg = string.format(
-		'[JobCompleted],name,%s,type,%s,worker,%s', 
-		job_name,
-		job_type,
-		job_unit_name
-	)
+	local msg = {
+		job_type = job_type,
+		job_name = job_name,
+		job_unit_name = job_unit_name
+	}
 
-	LogHandler.write_log(msg)
+
+	LogHandler.write_log("Job", msg)
 end
 
 return JobLogger
