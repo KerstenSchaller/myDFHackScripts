@@ -21,7 +21,7 @@ function DeathLogger.log(unit_id)
     local killer_race = dfhack.units.getRaceName(Helper.getUnitById(killerId)) or 'unknown'
 	local killer = Helper.getNameOfKillerByVictimId(unit_id)
 	local killedByCitizen = Helper.isUnitCitizen(killer)       
-	local name = dfhack.units.getReadableName(unit) or 'unknown'
+	local name = dfhack.translation.translateName(unit.name) or 'unknown'
 	local msg = string.format(
 		'[UnitDeath],id,%s,name,%s,race,%s,death_cause,%s,killer,%s,killed_by_citizen,%s,killer_race,%s',
 		unit_id_str,

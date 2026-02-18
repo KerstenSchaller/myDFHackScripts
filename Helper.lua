@@ -17,7 +17,7 @@ function Helper.getMakerName(makerId)
     if makerId ~= -1 and makerId ~= nil then
         for _, unit in ipairs(df.global.world.units.active) do
             if unit.hist_figure_id == makerId then
-                maker = dfhack.units.getReadableName(unit) or tostring(makerId)
+                maker = dfhack.translation.translateName(unit.name) or tostring(makerId)
                 break
             end
         end
@@ -205,7 +205,7 @@ function Helper.getUnitNameById(id)
     if unit then
         local unitname = dfhack.translation.translateName(unit.name)
         if unitname == "" then
-            unitname = dfhack.units.getReadableName(unit)
+            unitname = dfhack.translation.translateName(unit.name)
         end
         return unitname
     else

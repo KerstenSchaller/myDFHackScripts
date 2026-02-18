@@ -114,7 +114,7 @@ function createPopulationPageText(year)
 	for _, citizen in ipairs(citizenChanges.NewCitizens) do
 		local age = citizen.age
 		age = age:match("^([^.]+)") or age
-		local text = string.format("%s, a %s years old %s %s", citizen.name, age, citizen.sex, citizen.race)
+		local text = string.format("%s, a %s years old %s %s", dfhack.utf2df(citizen.name), age, citizen.sex, citizen.race)
 		addTokenisedText(tokens, text, COLOR_GREEN, 8, true)
 	end
 	addLinebreak(tokens)
@@ -123,7 +123,7 @@ function createPopulationPageText(year)
 		addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
 		for _, death in ipairs(unitDeaths.DwarfDeaths) do
 			-- age is a float string with . divider, we want to remove the decimal part for display
-			local text = string.format("%s, a %s years old %s %s died of %s", death.name, "TODO", "TODO", death.race, death.death_cause)
+			local text = string.format("%s, a %s years old %s %s died of %s", dfhack.utf2df(death.name), "TODO", "TODO", death.race, death.death_cause)
 			addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
 		end
 	else

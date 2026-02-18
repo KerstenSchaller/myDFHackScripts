@@ -79,7 +79,7 @@ for _, unit in ipairs(allUnits) do
         local name = dfhack.translation.translateName(unit.name)
         local strName = ""
         if name == "" then
-            strName = " Name:" .. dfhack.units.getReadableName(unit)
+            strName = " Name:" .. dfhack.translation.translateName(unit.name)
         end
         
         print("ID:", unit.id, " Race:", dfhack.units.getRaceReadableName(unit), strName )
