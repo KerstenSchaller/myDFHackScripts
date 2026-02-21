@@ -21,7 +21,8 @@ function JobLogger.log(job)
 	local msg = {
 		job_type = job_type,
 		job_name = job_name,
-		job_unit_name = job_unit_name
+		job_unit_name = Helper.parseUnit(job_unit),
+		material = mat_name
 	}
 
 

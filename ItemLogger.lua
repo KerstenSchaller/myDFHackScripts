@@ -21,7 +21,6 @@ function ItemLogger.log(item_id)
 	local mat_name = mat and mat:toString() or 'unknown material'
 
 	local makerId = item.maker
-	local maker = Helper.getMakerName(makerId)
 	local quality = item:getQuality()
 	local value = dfhack.items.getValue(item)
 	local isArtifact = item.flags.artifact
@@ -34,10 +33,12 @@ function ItemLogger.log(item_id)
 		material = mat_name,
 		item_name = item_name,
 		item_descr = item_descr,
-		maker = maker,
+		maker = Helper.parseUnit(Helper.getUnitByHistFigureId(makerId)),
 		quality = quality,
 		value = value,
-		is_artifact = isArtifact
+		is_artifact = isArtifact,
+		mat_index = item.mat_index,
+		mat_type = item.mat_type,
 	}
 
 

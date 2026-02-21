@@ -34,9 +34,7 @@ end
             end
         end,
         function(unit)
-            local male = dfhack.units.isMale(unit)
-            local sex = male and "male" or "female"
-            local msgJson = { type = "newcitizen", id = unit.id, name = dfhack.translation.translateName(unit.name), race = dfhack.units.getRaceName(unit), age = dfhack.units.getAge(unit), sex = sex}
+            local msgJson = { type = "newcitizen", citizen = Helper.parseUnit(unit)}
             LogHandler.write_log("Citizen", msgJson)
         end,
         function(x,z)

@@ -15,7 +15,7 @@ local Json = require('Json')
 
 local fortressName = dfhack.df2console(dfhack.translation.translateName(df.global.plotinfo.main.fortress_site.name, true))
 local worldName = dfhack.df2console(dfhack.translation.translateName(df.global.world.world_data.name, true))
-local LOG_PATH = string.format("DFStats_%s_%s_.log", worldName, fortressName)
+local LOG_PATH = string.format("DF_Chronicle_%s_%s_.log", worldName, fortressName)
 print("Logpath: "..LOG_PATH)
 if not dfhack.filesystem.exists("dfhack-config/df_chronicle") then
     dfhack.filesystem.mkdir("dfhack-config/df_chronicle")

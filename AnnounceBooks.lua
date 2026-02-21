@@ -11,6 +11,7 @@ local command2 = args[2] or nil
 local script_dir = dfhack.getDFPath() .. '/dfhack-config/scripts/'
 package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.path
 local Helper = require('Helper')
+local logHandler = require('LogHandler')
 
 local modId = "ANNOUNCE_BOOK_CREATION"
 
@@ -24,7 +25,7 @@ function AnnounceBooks.sortBooks(list, mode)
         end)
     elseif mode == "maker" then  
         table.sort(list, function(a, b)
-            return Helper.getMakerName(a.makerId):lower() < Helper.getMakerName(b.makerId):lower()
+            return Helper.getUnitByHistFigureId(a.makerId).name:lower() < Helper.getUnitByHistFigureId(b.makerId).name:lower()
         end)
     else  
         return list
@@ -93,7 +94,7 @@ function AnnounceBooks.printBooksOfFortress(sortmode)
     local copy = AnnounceBooks.copyTable(books)
     AnnounceBooks.sortBooks(copy, sortmode)
     for id, book in pairs(copy) do
-        print(book.title .. " | Maker: " .. Helper.getMakerName(book.makerId) )
+        print(book.title .. " | Maker: " .. Helper.getUnitByHistFigureId(book.makerId).name )
     end
 end
 
@@ -111,9 +112,12 @@ function AnnounceBooks.checkForNewBooks()
     -- Announce any new book whose title is not in known_titles
     for _, book in ipairs(current_books) do
         if not known_titles[book.title] then
-            local message = Helper.getMakerName(book.makerId) .. " has written a new book titled '" .. book.title .. "'"
+            local message = Helper.getUnitByHistFigureId(book.makerId).name .. " has written a new book titled '" .. book.title .. "'"
             if last_logged_message ~= message then
                 dfhack.gui.showAnnouncement(message, COLOR_WHITE)
+
+                local msgJson = { title = book.title, maker = Helper.parseUnit(Helper.getUnitByHistFigureId(book.makerId)), quality = book.quality}
+                logHandler.write_log("BookCreation", msgJson)
                 last_logged_message = message
             end
             

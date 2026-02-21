@@ -12,19 +12,15 @@ function Helper.date()
     return {day = day, month = month, year = year}
 end
 
-function Helper.getMakerName(makerId)
-    local maker = "unknown"
+function Helper.getUnitByHistFigureId(makerId)
     if makerId ~= -1 and makerId ~= nil then
-        for _, unit in ipairs(df.global.world.units.active) do
+        for _, unit in ipairs(df.global.world.units.all) do
             if unit.hist_figure_id == makerId then
-                maker = dfhack.translation.translateName(unit.name) or tostring(makerId)
-                break
+                return unit
             end
         end
-    else
-        maker = tostring(makerId)
     end
-    return maker
+    return nil
 end
 
 
@@ -214,7 +210,7 @@ function Helper.getUnitNameById(id)
 end
 
 function Helper.isUnitCitizen(unitId)
-    for _, unit in ipairs(df.global.world.units.active) do
+    for _, unit in ipairs(df.global.world.units.all) do
         if unit.id == unitId then
             if dfhack.units.isCitizen(unit) then
                 return true
@@ -267,6 +263,29 @@ function Helper.getIncidentDeathCauseByVictimId(victimId)
         end
     end
     return nil
+end
+
+function Helper.parseUnit(unit)
+	local male = dfhack.units.isMale(unit)
+	local sex = male and "male" or "female"
+	return {
+		id = unit.id,
+		name = dfhack.translation.translateName(unit.name),
+		race = dfhack.units.getRaceName(unit),
+		age = dfhack.units.getAge(unit),
+		isCitizen = Helper.isUnitCitizen(unit.id),
+        isResident = unit.flags2.resident,
+        isGroup = dfhack.units.isOwnGroup(unit),
+        isGhost = unit.ghost_info ~= nil or unit.flags3.ghostly,
+        isAnimal = unit.flags4.counts_as_animal,
+        isMerchant = unit.flags1.merchant,
+        isTame = unit.flags1.tame,
+        isGuest = unit.flags3.guest,
+		sex = sex,
+        isPet = dfhack.units.isPet(unit),
+        hostile = dfhack.units.isDanger(unit),
+        butchered = unit.flags2.slaughter,
+	}
 end
 
 return Helper

@@ -40,8 +40,20 @@ function Json.table_to_json(tbl)
             else
                 -- Table is an object: encode as JSON object
                 local res = {}
+                -- Custom key order: date, type, data first if present
+                local key_order = {"date", "type", "data"}
+                local used_keys = {}
+                for _, key in ipairs(key_order) do
+                    if val[key] ~= nil then
+                        table.insert(res, escape_str(key) .. ":" .. encode(val[key]))
+                        used_keys[key] = true
+                    end
+                end
+                -- Add the rest of the keys (unordered)
                 for k, v in pairs(val) do
-                    table.insert(res, escape_str(k) .. ":" .. encode(v))
+                    if not used_keys[k] then
+                        table.insert(res, escape_str(k) .. ":" .. encode(v))
+                    end
                 end
                 return "{" .. table.concat(res, ",") .. "}"
             end
