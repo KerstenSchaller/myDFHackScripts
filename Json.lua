@@ -41,7 +41,7 @@ function Json.table_to_json(tbl)
                 -- Table is an object: encode as JSON object
                 local res = {}
                 -- Custom key order: date, type, data first if present
-                local key_order = {"date", "type", "data"}
+                local key_order = {"date", "type", "data", "day", "month", "year", "ticks"}
                 local used_keys = {}
                 for _, key in ipairs(key_order) do
                     if val[key] ~= nil then

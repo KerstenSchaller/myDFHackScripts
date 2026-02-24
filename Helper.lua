@@ -9,7 +9,8 @@ function Helper.date()
     local day = dfhack.world.ReadCurrentDay()
     local month = dfhack.world.ReadCurrentMonth()
     local year = dfhack.world.ReadCurrentYear()
-    return {day = day, month = month, year = year}
+    local ticks = dfhack.world.ReadCurrentTick()
+    return {day = day, month = month, year = year, ticks = ticks}
 end
 
 function Helper.getUnitByHistFigureId(makerId)
@@ -18,6 +19,15 @@ function Helper.getUnitByHistFigureId(makerId)
             if unit.hist_figure_id == makerId then
                 return unit
             end
+        end
+    end
+    return nil
+end
+
+function Helper.getHistoricalFigureByid(id)
+    for _, histfig in ipairs(df.global.world.history.figures) do
+        if histfig.id == id then
+            return histfig
         end
     end
     return nil
@@ -36,11 +46,12 @@ function Helper.watch(getCurrentList, getKey, logChange, logNew, secondCondition
     return function()
             if firstCall then
                 known_items = getCurrentList()
+                dfhack.gui.showAnnouncement(string.format("Initial count: %d", #known_items))
                 lastCount = #known_items
                 firstCall = false
                 if secondCondition ~= nil then
                     for id, item in ipairs(known_items) do
-                        local _,_,val = secondCondition(nil,item)
+                        local _,_,val = secondCondition(lastItemValues[id],item)
                         lastItemValues[id] = val
                     end
                 end
@@ -69,7 +80,6 @@ function Helper.watch(getCurrentList, getKey, logChange, logNew, secondCondition
             local cond, value1, value2 = secondCondition(lastItemValues[id], item)
             if cond then
                 logNew(item)
-                dfhack.gui.showAnnouncement("Petition change detected")
                 known_items = current_items
                 lastItemValues[id] = value2
             end
@@ -91,7 +101,7 @@ function Helper.resolveEnum(k,v)
         if dv == nil then
             return "unknown_enum_value"
         end
-        return d[v]..","..string.format("%s%s",tostring(k),"_value")..","..tostring(v)
+        return d[v]
     end
 
 end
@@ -161,7 +171,7 @@ function Helper.printTable(t, indent, parentPath)
     parentPath = parentPath or ""
     if type(t) ~= "table" and type(t) ~= "userdata" then
         -- header line
-        print("0 " .. indent .. parentPath .. tostring(t))
+        print(indent .. parentPath .. tostring(t))
         currentLines = currentLines + 1
         if currentLines >= maxLines then
             print("Max lines reached, stopping print.")
@@ -172,7 +182,7 @@ function Helper.printTable(t, indent, parentPath)
     for k, v in pairs(t) do
         local fullPath = parentPath ~= "" and (parentPath .. "." .. tostring(k)) or tostring(k)
         if type(v) == "table" or type(v) == "userdata" then
-            print(tostring(currentPrintDepth) .. " " .. indent .. fullPath .. ":")
+            print( " " .. indent .. fullPath .. ":")
             if currentPrintDepth < maxDepth then
                 Helper.printTable(v, indent .. "  ", fullPath)
             end
@@ -180,7 +190,7 @@ function Helper.printTable(t, indent, parentPath)
             if Helper.is_number(tostring(k)) and v == false then
                 goto continue
             end
-            print(tostring(currentPrintDepth) .. indent .. fullPath .. ": " .. Helper.resolveEnum(k,v))
+            print( indent .. fullPath .. ": " .. Helper.resolveEnum(k,v).. " (" .. tostring(v) .. ")")
             ::continue::
         end
     end
@@ -268,9 +278,14 @@ end
 function Helper.parseUnit(unit)
 	local male = dfhack.units.isMale(unit)
 	local sex = male and "male" or "female"
+    local unit_histfig = Helper.getHistoricalFigureByid(unit.hist_figure_id)
+
+    local profession = dfhack.units.getProfessionName(unit)
+
 	return {
 		id = unit.id,
 		name = dfhack.translation.translateName(unit.name),
+		name_english = dfhack.translation.translateName(unit.name,true),
 		race = dfhack.units.getRaceName(unit),
 		age = dfhack.units.getAge(unit),
 		isCitizen = Helper.isUnitCitizen(unit.id),
@@ -285,6 +300,7 @@ function Helper.parseUnit(unit)
         isPet = dfhack.units.isPet(unit),
         hostile = dfhack.units.isDanger(unit),
         butchered = unit.flags2.slaughter,
+        profession = profession
 	}
 end
 

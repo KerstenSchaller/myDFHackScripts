@@ -13,6 +13,7 @@ local LogHandler = require('LogHandler')
 local Helper = require('Helper')
 local AnnouncementLogger = require('AnnouncementLogger')
 local ItemLogger = require('ItemLogger')
+local StatsLogger = require('StatsLogger')
 
 local DeathLogger = require('DeathLogger')  
 local JobLogger = require('JobLogger')
@@ -91,10 +92,11 @@ local function startWatcher()
         AnnouncementLogger.watch()
         CitezenLogger.watch()
         BookAnnouncer.checkForNewBooks()
-        PetitionLogger.watch()
+        StatsLogger.logAll()-- logs every month
         if watcherActive then
             dfhack.timeout(500, 'ticks', tick)
         end
+        PetitionLogger.watch()
     end
     tick()
 end

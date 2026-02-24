@@ -1,152 +1,23 @@
 local MaterialHelper = {}
 
-local Gems = {
-    "INDIGO TOURMALINE",
-    "BLUE GARNET",
-    "SAPPHIRE",
-    "DIAMOND_BLUE",
-    "PRASE",
-    "PRASE OPAL",
-    "MOSS AGATE",
-    "MOSS OPAL",
-    "VARISCITE",
-    "AVENTURINE",
-    "TSAVORITE",
-    "GREEN TOURMALINE",
-    "DEMANTOID",
-    "GREEN ZIRCON",
-    "EMERALD",
-    "DIAMOND_GREEN",
-    "BLOODSTONE",
-    "SARD",
-    "CARNELIAN",
-    "BANDED AGATE",
-    "SARDONYX",
-    "CHERRY OPAL",
-    "RED ZIRCON",
-    "RED TOURMALINE",
-    "RED PYROPE",
-    "ALMANDINE",
-    "RED GROSSULAR",
-    "SPINEL_RED",
-    "RUBY",
-    "DIAMOND_RED",
-    "LAVENDER JADE",
-    "RHODOLITE",
-    "SPINEL_PURPLE",
-    "TUBE AGATE",
-    "FIRE AGATE",
-    "PLUME AGATE",
-    "BROWN JASPER",
-    "PICTURE JASPER",
-    "SMOKY QUARTZ",
-    "WAX OPAL",
-    "WOOD OPAL",
-    "AMBER OPAL",
-    "CINNAMON GROSSULAR",
-    "HONEY YELLOW BERYL",
-    "JELLY OPAL",
-    "BROWN ZIRCON",
-    "DIAMOND_FY",
-    "ONYX",
-    "MORION",
-    "SCHORL",
-    "BLACK ZIRCON",
-    "BLACK PYROPE",
-    "MELANITE",
-    "OPAL_BLACK",
-    "DIAMOND_BLACK",
-    "LACE AGATE",
-    "BLUE JADE",
-    "LAPIS LAZULI",
-    "OPAL_CLARO",
-    "SAPPHIRE_STAR",
-    "CHRYSOPRASE",
-    "GREEN JADE",
-    "HELIODOR",
-    "PERIDOT",
-    "CHRYSOBERYL",
-    "CHRYSOCOLLA",
-    "TURQUOISE",
-    "AQUAMARINE",
-    "QUARTZ_ROSE",
-    "PINK TOURMALINE",
-    "RED BERYL",
-    "FIRE OPAL",
-    "OPAL_PFIRE",
-    "OPAL_REDFLASH",
-    "RUBY_STAR",
-    "PINK JADE",
-    "ALEXANDRITE",
-    "TANZANITE",
-    "MORGANITE",
-    "VIOLET SPESSARTINE",
-    "PINK GARNET",
-    "KUNZITE",
-    "AMETHYST",
-    "GOLD OPAL",
-    "CITRINE",
-    "YELLOW JASPER",
-    "TIGEREYE",
-    "TIGER IRON",
-    "SUNSTONE",
-    "RESIN OPAL",
-    "PYRITE",
-    "YELLOW ZIRCON",
-    "GOLDEN BERYL",
-    "YELLOW SPESSARTINE",
-    "TOPAZ",
-    "TOPAZOLITE",
-    "YELLOW GROSSULAR",
-    "RUBICELLE",
-    "OPAL_LEVIN",
-    "DIAMOND_YELLOW",
-    "CLEAR TOURMALINE",
-    "GRAY CHALCEDONY",
-    "DENDRITIC AGATE",
-    "SHELL OPAL",
-    "BONE OPAL",
-    "WHITE CHALCEDONY",
-    "FORTIFICATION AGATE",
-    "MILK QUARTZ",
-    "MOONSTONE",
-    "WHITE JADE",
-    "JASPER OPAL",
-    "PINEAPPLE OPAL",
-    "ONYX OPAL",
-    "MILK OPAL",
-    "PIPE OPAL",
-    "CRYSTAL_ROCK",
-    "CLEAR GARNET",
-    "GOSHENITE",
-    "CAT'S EYE",
-    "CLEAR ZIRCON",
-    "OPAL_WHITE",
-    "OPAL_CRYSTAL",
-    "OPAL_HARLEQUIN",
-    "OPAL_PINFIRE",
-    "OPAL_BANDFIRE",
-    "DIAMOND_LY",
-    "DIAMOND_CLEAR"
-}
 
 local Ores = {
     "HEMATITE",
     "LIMONITE",
     "GARNIERITE",
-    "NATIVE_GOLD",
-    "NATIVE_SILVER",
-    "NATIVE_COPPER",
+    "NATIVE GOLD",
+    "NATIVE SILVER",
+    "NATIVE COPPER",
     "MALACHITE",
     "GALENA",
     "SPHALERITE",
     "CASSITERITE",
-    "HORN_SILVER",
+    "HORN SILVER",
     "TETRAHEDRITE", 
-    "NATIVE_PLATINUM",
+    "NATIVE PLATINUM",
     "BISMUTHINITE",
     "MAGNETITE",
-    "NATIVE_ALUMINUM",
+    "NATIVE ALUMINUM",
 }
 
 local economicStone = {
@@ -166,7 +37,7 @@ local otherRocks = {
     "TALC",-- nothing
     "JET",-- nothing
     "PUDDINGSTONE",-- nothing
-    "PETRIFIED_WOOD",-- nothing
+    "PETRIFIED WOOD",-- nothing
     "GRAPHITE",-- nothing
     "BRIMSTONE",-- nothing
     "KIMBERLITE",-- nothing
@@ -193,14 +64,14 @@ local otherRocks = {
     "SALTPETER",-- nothing
     "ANHYDRITE",-- nothing
     "ALUNITE",-- nothing
-    "RAW_ADAMANTINE",-- nothing
+    "RAW ADAMANTINE",-- nothing
     "SLADE",-- nothing
 	"SANDSTONE",
 	"SILTSTONE",
 	"MUDSTONE",
 	"SHALE",
 	"CLAYSTONE",
-	"ROCK_SALT",
+	"ROCK SALT",
 	"LIMESTONE",
 	"CONGLOMERATE",
 	"DOLOMITE",
@@ -232,14 +103,14 @@ local Wood = {
     "KAPOK",
     "MAPLE",
     "WILLOW",
-    "TOWER_CAP",
-    "BLACK_CAP",
-    "NETHER_CAP",
-    "GOBLIN_CAP",
+    "TOWER CAP",
+    "BLACK CAP",
+    "NETHER CAP",
+    "GOBLIN CAP",
     "FUNGIWOOD",
-    "TUNNEL_TUBE",
-    "SPORE_TREE",
-    "BLOOD_THORN",
+    "TUNNEL TUBE",
+    "SPORE TREE",
+    "BLOOD THORN",
     "GLUMPRONG",
     "FEATHER",
     "HIGHWOOD",
@@ -265,22 +136,22 @@ local metal = {
      "BRONZE",
      "BRASS",
      "STEEL",
-     "PIG_IRON",
+     "PIG IRON",
      "PLATINUM",
      "ELECTRUM",
      "TIN",
-     "PEWTER_FINE",
-     "PEWTER_TRIFLE",
-     "PEWTER_LAY",
+     "FINE PEWTER",
+     "TRIFLE PEWTER",
+     "LAY PEWTER",
      "LEAD",
      "ALUMINUM",
-     "NICKEL_SILVER",
+     "NICKEL SILVER",
      "BILLON",
-     "STERLING_SILVER",
-     "BLACK_BRONZE",
-     "ROSE_GOLD",
+     "STERLING SILVER",
+     "BLACK BRONZE",
+     "ROSE GOLD",
      "BISMUTH",
-     "BISMUTH_BRONZE",
+     "BISMUTH BRONZE",
      "ADAMANTINE",
 }
 
@@ -304,41 +175,102 @@ function MaterialHelper.getItemById(id)
     end
 end
 
+
 function MaterialHelper.typeInfoByItemId(itemId)
-    local item = MaterialHelper.getItemById(itemId)
-    if not item then
-        return "unknown"
+    local item
+    if type(itemId) == "number" then
+        item = MaterialHelper.getItemById(itemId)
+        if not item then
+            print("Item with id " .. tostring(itemId) .. " not found.")
+            return "unknown"
+        end
+    else
+        item = itemId -- assume itemId is already an item object
     end
-    dfhack.gui.showAnnouncement("id" .. tostring(item.id) )
-    local mat_info = dfhack.matinfo.decode(item.mat_type, item.mat_index)
-    local retString = "unknown"
+
+    local item_str = tostring(item)
+    local item_type = item_str:match("^<([%w_]+):") or item_str
+
+
+    if item_type == "item_eggst" then
+        return "Food"
+    end
+
+    if item_type == "item_fishst" then
+        return "Food"
+    end
+
+    if item_type == "item_corpsest" or item_type == "item_corpsepiecest" or item_type == "item_skullst" or item_type == "item_remainsst" then
+        return "Corpse"
+    end
+
+    local mat_info = nil
+    local ok, result = pcall(function()
+        mat_info = dfhack.matinfo.decode(item.mat_type, item.mat_index)
+    end)
+    if not ok then
+        print("Error: " .. item_type .. " has no material info. Item ID: " .. item.id)
+        return ""
+    else
+        -- use result
+    end
+
+
+    if mat_info and mat_info.material.id == "Drink" then
+        return "Drink"
+    end
+
+    if mat_info and mat_info.material.id == "Seed" then
+        return "Seed"
+    end
+
+    local material_flags = mat_info and mat_info.material.flags or ""
+    if material_flags.EDIBLE_VERMIN == true or material_flags.EDIBLE_RAW == true or material_flags.EDIBLE_COOKED == true then
+        return "Food"
+    end
+
     if mat_info and mat_info.mode == "plant" then
-        retString = "Plant"
+        return "Plant"
     end
     if mat_info and mat_info.mode == "inorganic" then
+        local flags = mat_info.material.flags
+
         -- check if it's a gem, stone mineral, or other rock
-        if table.contains(Gems, string.upper(mat_info.material.state_name[0])) then
-            retString = "Gem"
+        if flags.IS_GEM then
+            return "Gem"
         end
-        if table.contains(otherRocks, string.upper(mat_info.material.state_name[0])) then
-            retString = "Rock"
-        end
-        if table.contains(economicStone, string.upper(mat_info.material.state_name[0])) then
-            retString = "EconomicStone"
-        end
-        if table.contains(Ores, string.upper(mat_info.material.state_name[0])) then
-            retString = "Ore"
+        if flags.IS_STONE then        
+            if table.contains(otherRocks, string.upper(mat_info.material.state_name[0])) then
+                return "Rock"
+            end
+            if table.contains(economicStone, string.upper(mat_info.material.state_name[0])) then
+                return "EconomicStone"
+            end
+            if table.contains(Ores, string.upper(mat_info.material.state_name[0])) then
+                return "Ore"
+            end
+            if flags.IS_CERAMIC then
+                return "Ceramic"
+            end
+            return "Unknown Rock: " .. mat_info.material.state_name[0]
         end
         if table.contains(metal, string.upper(mat_info.material.state_name[0])) then
-            retString = "Metal"
+            return "Metal"
         end
+
+        
     end
+    
+    if mat_info and mat_info.mode == "builtin" then
+        return mat_info.material.id
+    end
+    
     if mat_info and mat_info.mode == "creature" then
-        retString = "Creature"
+        return "Creature"
     end
-    return retString
     
-    
+    print("Material is metal: " .. mat_info.material.state_name[0])
+    return "Unknown".. " (" .. item_type .. ")"..item.mat_type..":"..item.mat_index ..","..item.id
 end
 
 

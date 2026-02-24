@@ -5,6 +5,7 @@ package.path = script_dir .. ';' .. package.path
 local LogHandler = require('LogHandler')
 local Helper = require('Helper')
 local Json = require('Json')
+local MaterialHelper = require('MaterialHelper')
 
 local ItemLogger = {}
 
@@ -39,6 +40,7 @@ function ItemLogger.log(item_id)
 		is_artifact = isArtifact,
 		mat_index = item.mat_index,
 		mat_type = item.mat_type,
+		material_category = MaterialHelper.typeInfoByItemId(item)
 	}
 
 

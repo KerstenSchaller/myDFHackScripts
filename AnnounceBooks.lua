@@ -94,7 +94,8 @@ function AnnounceBooks.printBooksOfFortress(sortmode)
     local copy = AnnounceBooks.copyTable(books)
     AnnounceBooks.sortBooks(copy, sortmode)
     for id, book in pairs(copy) do
-        print(book.title .. " | Maker: " .. Helper.getUnitByHistFigureId(book.makerId).name )
+        local maker = dfhack.translation.translateName(Helper.getUnitByHistFigureId(book.makerId).name)
+        print(book.title .. " | Maker: " .. maker )
     end
 end
 
@@ -112,7 +113,8 @@ function AnnounceBooks.checkForNewBooks()
     -- Announce any new book whose title is not in known_titles
     for _, book in ipairs(current_books) do
         if not known_titles[book.title] then
-            local message = Helper.getUnitByHistFigureId(book.makerId).name .. " has written a new book titled '" .. book.title .. "'"
+            local maker = dfhack.translation.translateName(Helper.getUnitByHistFigureId(book.makerId).name)
+            local message = maker .. " has written a new book titled '" .. book.title .. "'"
             if last_logged_message ~= message then
                 dfhack.gui.showAnnouncement(message, COLOR_WHITE)
 

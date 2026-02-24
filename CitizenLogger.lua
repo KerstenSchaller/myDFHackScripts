@@ -28,7 +28,6 @@ end
         end,
         function(oldCount, newCount)
             if oldCount ~= newCount then
-                dfhack.gui.showAnnouncement(string.format("Citizen count changed,from,%d,to,%d", oldCount, newCount), COLOR_WHITE)
                 local msgJson = { type = "countchange", from = oldCount, to = newCount}
                 LogHandler.write_log("Citizen", msgJson)
             end
