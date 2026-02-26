@@ -286,7 +286,7 @@ function Helper.parseUnit(unit)
 		id = unit.id,
 		name = dfhack.translation.translateName(unit.name),
 		name_english = dfhack.translation.translateName(unit.name,true),
-		race = dfhack.units.getRaceName(unit),
+		race = dfhack.units.getRaceReadableName(unit),
 		age = dfhack.units.getAge(unit),
 		isCitizen = Helper.isUnitCitizen(unit.id),
         isResident = unit.flags2.resident,

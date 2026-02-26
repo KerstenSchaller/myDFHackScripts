@@ -50,7 +50,13 @@ function AnnouncementWatcher.watch()
     if string.find(reports[#reports - 1].text, "Announcement")  then
         return
     end
-    local msg = { id = reports[#reports - 1].id, text = reports[#reports - 1].text, repeat_count = reports[#reports - 1].repeat_count }
+    local msg = {
+         id = reports[#reports - 1].id,
+         text = reports[#reports - 1].text,
+         type = df.announcement_type[reports[#reports - 1].type],
+         year = reports[#reports - 1].year,
+         tick = reports[#reports - 1].time,
+        }
     parseAnnouncements(msg)
 end
 
