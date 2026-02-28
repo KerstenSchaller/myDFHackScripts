@@ -275,8 +275,8 @@ function Helper.getIncidentDeathCauseByVictimId(victimId)
     return nil
 end
 
-function Helper.parseUnit(unit)
-	local male = dfhack.units.isMale(unit)
+function Helper.parsePerson(unit)
+    local male = dfhack.units.isMale(unit)
 	local sex = male and "male" or "female"
     local unit_histfig = Helper.getHistoricalFigureByid(unit.hist_figure_id)
 
@@ -290,18 +290,67 @@ function Helper.parseUnit(unit)
 		age = dfhack.units.getAge(unit),
 		isCitizen = Helper.isUnitCitizen(unit.id),
         isResident = unit.flags2.resident,
-        isGroup = dfhack.units.isOwnGroup(unit),
-        isGhost = unit.ghost_info ~= nil or unit.flags3.ghostly,
         isAnimal = unit.flags4.counts_as_animal,
         isMerchant = unit.flags1.merchant,
-        isTame = unit.flags1.tame,
         isGuest = unit.flags3.guest,
 		sex = sex,
         isPet = dfhack.units.isPet(unit),
         hostile = dfhack.units.isDanger(unit),
-        butchered = unit.flags2.slaughter,
-        profession = profession
+        profession = profession,
+        motherId = unit.relationship_ids.Mother,
+        fatherId = unit.relationship_ids.Father,
+        spouseId = unit.relationship_ids.Spouse,
 	}
+end
+
+function Helper.parseAnimal(unit)
+    local male = dfhack.units.isMale(unit)
+	local sex = male and "male" or "female"
+    local unit_histfig = Helper.getHistoricalFigureByid(unit.hist_figure_id)
+
+    local profession = dfhack.units.getProfessionName(unit)
+
+	return {
+		id = unit.id,
+		name = dfhack.translation.translateName(unit.name),
+		name_english = dfhack.translation.translateName(unit.name,true),
+		race = dfhack.units.getRaceReadableName(unit),
+		age = dfhack.units.getAge(unit),
+        isAnimal = unit.flags4.counts_as_animal,
+        isMerchant = unit.flags1.merchant,
+        isTame = unit.flags1.tame,
+		sex = sex,
+        isPet = dfhack.units.isPet(unit),
+        hostile = dfhack.units.isDanger(unit),
+        butchered = unit.flags2.slaughter,
+        motherId = unit.relationship_ids.Mother,
+        fatherId = unit.relationship_ids.Father,
+        petOwner = unit.relationship_ids.PetOwner,
+	}
+end
+
+
+function Helper.parseUnit(unit)
+	local male = dfhack.units.isMale(unit)
+	local sex = male and "male" or "female"
+    local unit_histfig = Helper.getHistoricalFigureByid(unit.hist_figure_id)
+    local isAnimal = unit.flags4.counts_as_animal
+    local profession = dfhack.units.getProfessionName(unit)
+
+    if isAnimal then
+        return Helper.parseAnimal(unit)
+    else
+        return Helper.parsePerson(unit)
+    end 
+end
+
+function Helper.parseUnitById(unitId)
+    local unit = Helper.getUnitById(unitId)
+    if unit then
+        return Helper.parseUnit(unit)
+    else
+        return nil
+    end
 end
 
 return Helper

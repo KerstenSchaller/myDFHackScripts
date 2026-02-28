@@ -43,21 +43,47 @@ function AnnouncementWatcher.watch()
         --dfhack.gui.showAnnouncement("Duplicate announcement skipped."..last_announcement_msg..reports[#reports - 1].id, COLOR_WHITE)
         return -- already logged
     end
-    AnnouncementWatcher.lastLoggedId = reports[#reports - 1].id
-    last_announcement_msg = reports[#reports - 1].text
 
-    -- check if announcement contains [Announcement] and skip if  yes
-    if string.find(reports[#reports - 1].text, "Announcement")  then
+    if #reports < 2 then
         return
     end
-    local msg = {
-         id = reports[#reports - 1].id,
-         text = reports[#reports - 1].text,
-         type = df.announcement_type[reports[#reports - 1].type],
-         year = reports[#reports - 1].year,
-         tick = reports[#reports - 1].time,
+
+    AnnouncementWatcher.lastLoggedId = reports[#reports - 1].id
+    last_announcement_msg = reports[#reports - 1]
+
+
+
+
+        local msgJson = {
+        type = last_announcement_msg.type,
+        text = last_announcement_msg.text,
+        id = last_announcement_msg.id,
+        continuation = last_announcement_msg.flags.continuation,
+        unconscious = last_announcement_msg.flags.unconscious,
+        announcement = last_announcement_msg.flags.announcement,
+        pos1 = {
+            zoom_type = last_announcement_msg.zoom_type,
+            x = last_announcement_msg.pos.x,
+            y = last_announcement_msg.pos.y,
+            z = last_announcement_msg.pos.z,
+        },
+        pos2 = {
+            zoom_type = last_announcement_msg.zoom_type2,
+            x = last_announcement_msg.pos2.x,
+            y = last_announcement_msg.pos2.y,
+            z = last_announcement_msg.pos2.z,
+        },
+        year = last_announcement_msg.year,
+        time = last_announcement_msg.time,
+        activity_id = last_announcement_msg.activity_id,
+        activity_event_id = last_announcement_msg.activity_event_id,
+        speaker_id = last_announcement_msg.speaker_id,
+
         }
-    parseAnnouncements(msg)
+
+
+
+    LogHandler.write_log("Announcement",msgJson)
 end
 
 return AnnouncementWatcher

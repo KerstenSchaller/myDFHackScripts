@@ -14,15 +14,15 @@ local known_citizens = {}
 
 function citizens.getCurrentCitizens()
     local current_citizens = {}
-    for _, unit in ipairs(df.global.world.units.active) do
-        if dfhack.units.isCitizen(unit) then
-            table.insert(current_citizens, unit)
+        for _, unit in ipairs(df.global.world.units.active) do
+            if dfhack.units.isCitizen(unit) then
+                table.insert(current_citizens, unit)
+            end
         end
+        return current_citizens
     end
-    return current_citizens
-end
 
-    local watcher = Helper.watch(citizens.getCurrentCitizens,
+local watcher = Helper.watch(citizens.getCurrentCitizens,
         function(unit) 
             return dfhack.translation.translateName(unit.name)
         end,
@@ -41,8 +41,21 @@ end
         end
     )
 
+
+local firstCall = true
 function citizens.watch()
     watcher()
+    -- on the 1.1 of every year, log all citizens to a list (first month is 0 in df)
+    local date = Helper.date()
+    if(date.day == 1 and date.month == 0) or firstCall then
+        firstCall = false
+        local allCitizens = citizens.getCurrentCitizens()
+        local allParsedCitizens = {}
+        for _, citizen in ipairs(allCitizens) do
+            table.insert(allParsedCitizens, Helper.parseUnit(citizen))
+        end
+        LogHandler.write_log("AllCitizens", allParsedCitizens)
+    end
 end
 
 
