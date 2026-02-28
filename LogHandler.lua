@@ -15,12 +15,12 @@ local Json = require('Json')
 
 local fortressName = dfhack.df2console(dfhack.translation.translateName(df.global.plotinfo.main.fortress_site.name, true))
 local worldName = dfhack.df2console(dfhack.translation.translateName(df.global.world.world_data.name, true))
-local LOG_PATH = string.format("DF_Chronicle_%s_%s_.log", worldName, fortressName)
-print("Logpath: "..LOG_PATH)
+local CHRONICLE_LOG_PATH = string.format("DF_Chronicle_%s_%s_.log", worldName, fortressName)
+print("Logpath: "..CHRONICLE_LOG_PATH)
 if not dfhack.filesystem.exists("dfhack-config/df_chronicle") then
     dfhack.filesystem.mkdir("dfhack-config/df_chronicle")
 end
-      LOG_PATH = string.format("dfhack-config/df_chronicle/%s", LOG_PATH)
+      LOG_PATH = string.format("dfhack-config/df_chronicle/%s", CHRONICLE_LOG_PATH)
 
 
 function LogHandler.appendToFile( message)
@@ -34,7 +34,12 @@ function LogHandler.appendToFile( message)
     end
 end
 
-function LogHandler.write_log(messageType,message)
+function LogHandler.write_log(messageType,message,filename)
+    if filename then
+        LOG_PATH = string.format("dfhack-config/df_chronicle/%s", filename)
+    else
+        LOG_PATH = string.format("dfhack-config/df_chronicle/%s", CHRONICLE_LOG_PATH)
+    end
     if message == "" then
         return
     end

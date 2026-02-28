@@ -83,14 +83,29 @@ print('DF_LOGGER_SUB v' .. Version .. ' loading...')
 local watcherActive = false
 local lastAnnouncementId = -1
 local function startWatcher()
-    print("Starting DF_LOGGER_SUB watcher...")
     watcherActive = true
 
 
     local function tick()
         if not watcherActive then return end
-        AnnouncementLogger.watch()
+        local retText = AnnouncementLogger.watch()
+        if retText ~= nil then
+            -- find string "A vile force of darkness" in retText and print the part after it
+            dfhack.gui.showAnnouncement("Announcement: " .. retText, COLOR_WHITE)
+            local searchStrings = {"A vile force of darkness","Snatcher"}
+            for _, searchString in ipairs(searchStrings) do
+                local startIndex = string.find(retText, searchString,1,true)
+                if startIndex ~= nil then
+                    dfhack.gui.showAnnouncement("Invasion detected: " .. startIndex, COLOR_RED)
+                    local invasions = df.global.plotinfo.invasions.list
+                    local invasion = invasions[#invasions-1]
+                    InvasionLogger.logInvasion(invasion)
+                end
+            end
+
+        end
         CitezenLogger.watch()
+        InvasionLogger.watch()
         BookAnnouncer.checkForNewBooks()
         StatsLogger.logAll()-- logs every month
         if watcherActive then
@@ -141,13 +156,10 @@ local function setupLogging()
     eventful.onJobCompleted[modId] = function(job)
         JobLogger.log(job)
     end
-    eventful.onInvasion[modId] = function(invasion)
-        local msg = { civ_id=invasion.civ_id, site_id=invasion.site_id, size=invasion.size}
+    --eventful.onInvasion[modId] = function(invasion)
+    --    InvasionLogger.logInvasion(invasion)
+    --end
 
-        LogHandler.write_log("Invasion", msg)
-    end
-
-    print("Item announcer enabled.")
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------

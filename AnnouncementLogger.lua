@@ -84,6 +84,7 @@ function AnnouncementWatcher.watch()
 
 
     LogHandler.write_log("Announcement",msgJson)
+    return msgJson.text
 end
 
 return AnnouncementWatcher

@@ -32,10 +32,6 @@ function StatisticsLogger.logVisitorsAndOthers()
 
 
     for _, unit in ipairs(allUnits) do
-        if unit.flags3.ghostly then
-            print("Ghostly unit found: ID "..unit.id.." Name: "..dfhack.translation.translateName(unit.name))
-        end
-
         if dfhack.units.isVisible(unit) then
                 local race = dfhack.units.getRaceReadableName(unit)
 

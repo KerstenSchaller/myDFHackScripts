@@ -24,6 +24,15 @@ function Helper.getUnitByHistFigureId(makerId)
     return nil
 end
 
+function Helper.getUnitIdByHistFigureId(id)
+    for _, histFig in ipairs(df.global.world.history.figures) do
+        if histFig.unit_id == id then
+            return histFig.unit_id
+        end
+    end
+    return nil
+end
+
 function Helper.getHistoricalFigureByid(id)
     for _, histfig in ipairs(df.global.world.history.figures) do
         if histfig.id == id then
@@ -198,11 +207,12 @@ function Helper.printTable(t, indent, parentPath)
 end
 
 function Helper.getUnitById(id)
-    for _, unit in ipairs(df.global.world.units.active) do
+    for _, unit in ipairs(df.global.world.units.all) do
         if unit.id == id then
             return unit
         end
     end
+    print("Unit with id " .. id .. " not found.")
     return nil
 end
 
