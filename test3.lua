@@ -93,6 +93,16 @@ function createOverviewPageText(year)
 	addTokenisedText(tokens, str4, COLOR_YELLOW, 4, true)
 	addLinebreak(tokens)
 
+	--list job info
+	local jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted, year)
+	local str5=string.format("The dwarves completed %d jobs.", #jobInfos.TotalJobs)
+	addTokenisedText(tokens, str5, COLOR_CYAN, 4, true)
+
+	--list digging info
+	local str6=string.format("Of which %d were digging jobs.", jobInfos.DiggingCount)
+	addTokenisedText(tokens, str6, COLOR_CYAN, 4, true)
+
+
 	return tokens
 end
 
@@ -124,7 +134,8 @@ function createPopulationPageText(year)
 		addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
 		for _, death in ipairs(unitDeaths.DwarfDeaths) do
 			-- age is a float string with . divider, we want to remove the decimal part for display
-			local text = string.format("%s, a %s years old %s %s died of %s", dfhack.utf2df(death.data.victim.name), "TODO", "TODO", death.data.victim.race, death.data.victim.death_cause)
+			local age = math.floor(death.data.victim.age)
+			local text = string.format("%s, a %s years old %s %s died of %s", death.data.victim.name, age, death.data.victim.sex, death.data.victim.race, death.data.death_cause)
 			addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
 		end
 	else

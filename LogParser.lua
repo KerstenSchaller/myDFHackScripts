@@ -169,15 +169,19 @@ function LogParser.analyzeJobs(jobCompletedLines, yearFilter)
    local workerCount = {}
    local jobsByWorker = {}
    local diggingCountByWorker = {}
+   local diggingCount = 0
    local smoothStoneCountByWorker = {}
    local encraveCountByWorker = {}
+   local totalJobs = {}
 
    for _, job in ipairs(jobCompletedLines) do
       if yearFilter and tostring(job.date.year) ~= tostring(yearFilter) then
          goto continueJobs
       end
+      table.insert(totalJobs, job)
       if job.data.job_name == "Dig" or job.data.job_name == "Dig channel" or job.data.job_name == "Dig ramp" then
          diggingCountByWorker[job.data.job_unit.name] = (diggingCountByWorker[job.data.job_unit.name] or 0) + 1
+         diggingCount = diggingCount + 1
          goto continueJobs
       end
       if job.data.job_name == "Smooth floor" or job.data.job_name == "Smooth wall" then
@@ -192,6 +196,8 @@ function LogParser.analyzeJobs(jobCompletedLines, yearFilter)
       if job.data.job_name == "Eat" or job.data.job_name == "Drink" or job.data.job_name == "Sleep" then
          goto continueJobs
       end
+
+      
 
       -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
       -- Extract job type and worker name from the log line
@@ -213,8 +219,10 @@ function LogParser.analyzeJobs(jobCompletedLines, yearFilter)
         WorkerCount = workerCount,
         JobsByWorker = jobsByWorker,
         DiggingCountByWorker = diggingCountByWorker,
+        DiggingCount = diggingCount,
         SmoothStoneCountByWorker = smoothStoneCountByWorker,
-        EncraveCountByWorker = encraveCountByWorker
+        EncraveCountByWorker = encraveCountByWorker,
+        TotalJobs = totalJobs
     }
 
     
