@@ -40,7 +40,8 @@ function ItemLogger.log(item_id)
 		is_artifact = isArtifact,
 		mat_index = item.mat_index,
 		mat_type = item.mat_type,
-		material_category = MaterialHelper.typeInfoByItemId(item)
+		material_category = MaterialHelper.typeInfoByItemId(item),
+		item_type_str = tostring(item),
 	}
 
 

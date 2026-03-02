@@ -9,6 +9,7 @@ package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.
 local Helper = require('Helper')
 local logHandler = require('LogHandler')
 local MaterialHelper = require('MaterialHelper')
+local Json = require('Json')
 
 local LogParser = {}
 
@@ -21,92 +22,21 @@ function LogParser.splitCommaSeparated(str)
 end
 
 
-function LogParser.logItemPartsToTable(parts)
-   local joinedPartsString = table.concat(parts, ",", 8)
-   local t = {
-      date = {
-         day = parts[1],
-         month = parts[2],
-         year = parts[3]
-      },
-      eventtype = parts[4],
-      id = parts[6],
-      type = parts[8],
-      material = Helper.getValueFromSerializedString(joinedPartsString,"material"),
-      name = Helper.getValueFromSerializedString(joinedPartsString,"name"),
-      desc = Helper.getValueFromSerializedString(joinedPartsString,"desc"),
-      maker = Helper.getValueFromSerializedString(joinedPartsString,"maker"),
-      quality = Helper.getValueFromSerializedString(joinedPartsString,"quality"),
-      value = Helper.getValueFromSerializedString(joinedPartsString,"value"),
-      artifact = Helper.getValueFromSerializedString(joinedPartsString,"artifact"),
-   }
 
-   return t
-end
 
--- Converts a split log line for [Announcement] into a structured table with named fields
-function LogParser.logAnnouncementPartsToTable(parts)
-   return {
-      date = {
-         day = parts[1],
-         month = parts[2],
-         year = parts[3]
-      },
-      eventtype = parts[4],
-      id = parts[6],
-      text = parts[8],
-      repeat_count = parts[10]
-   }
-end
-
--- Converts a split log line for [JobCompleted] into a structured table with named fields
-function LogParser.logJobCompletedPartsToTable(parts)
-   return {
-      date = {
-         day = parts[1],
-         month = parts[2],
-         year = parts[3]
-      },
-      eventtype = parts[4],
-      name = parts[6],
-      type = parts[8],
-      worker = parts[10],
-   }
-end
-
--- Converts a split log line for [UnitDeath] into a structured table with named fields
-function LogParser.logUnitDeathPartsToTable(parts)
-   local joinedPartsString = table.concat(parts, ",", 8)
-   return {
-      date = {
-         day = parts[1],
-         month = parts[2],
-         year = parts[3]
-      },
-      eventtype = parts[4],
-      id = parts[6],
-      name = parts[8],
-      race = Helper.getValueFromSerializedString(joinedPartsString,"race"),
-      death_cause = Helper.getValueFromSerializedString(joinedPartsString,"death_cause"),
-      death_type_value = Helper.getValueFromSerializedString(joinedPartsString,"death_type_value"),
-      killer = Helper.getValueFromSerializedString(joinedPartsString,"killer"),
-      killed_by_citizen = Helper.getValueFromSerializedString(joinedPartsString,"killed_by_citizen"),
-      killer_race = Helper.getValueFromSerializedString(joinedPartsString,"killer_race")
-   }
-end
 
 function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
 
    local killedByCitizen={}
    local dwarfDeaths = {}
    for _, death in ipairs(unitDeathLines) do
-      if yearFilter and tostring(death.date.year) ~= tostring(yearFilter) then
+      if yearFilter and death.date.year ~= yearFilter then
          goto continueDeaths
       end
-      if death.killed_by_citizen == "true" then
+      if death.data.victim.killed_by_citizen == true then
          table.insert(killedByCitizen,death)
       end
-      if death.race == "DWARF" then
+      if death.data.victim.race == "dwarf" then
          table.insert(dwarfDeaths, death)
       end
       ::continueDeaths::
@@ -118,23 +48,6 @@ function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
    }
 end
 
--- Converts a split log line for [PetitionChange] into a structured table with key-value pairs
-function LogParser.logPetitionChangePartsToTable(parts)
-   local newCond = parts[5] == "[NEW]" and true or false
-   local t = {
-      date = {
-         day = parts[1],
-         month = parts[2],
-         year = parts[3]
-      },
-      eventtype = parts[4],
-      newPetition = newCond,
-      petitionDataStr = table.concat(parts, ",", newCond and 6 or 5)
-
-
-   }
-   return t
-end
 
 
 function LogParser.listNumberOfDifferentMessages(logLines)
@@ -153,22 +66,7 @@ function LogParser.listNumberOfDifferentMessages(logLines)
    end
 end
 
-function LogParser.LogCitizenPartsToTable(parts)
-   local t = {
-      date = {
-         day = parts[1],
-         month = parts[2],
-         year = parts[3]
-      },
-      type = parts[6],
-      id = parts[8],
-      name = parts[10],
-      race = parts[12],
-      age = parts[14],
-      sex = parts[16]
-   }
-   return t
-   end
+
 
 -- Parses logLines into lists according to their 4th element
 function LogParser.parseLogLinesByType(logLines)
@@ -181,24 +79,25 @@ function LogParser.parseLogLinesByType(logLines)
    local years = {}
 
    for _, line in ipairs(logLines) do
-      local parts = LogParser.splitCommaSeparated(line)
-      local msgType = parts[4]
-      if msgType == '[Announcement]' then
-         table.insert(Announcement, LogParser.logAnnouncementPartsToTable(parts))
-      elseif msgType == '[ItemCreated]' then
-         table.insert(ItemCreated, LogParser.logItemPartsToTable(parts))
-      elseif msgType == '[PetitionChange]' then
-         table.insert(PetitionChange, LogParser.logPetitionChangePartsToTable(parts))
-      elseif msgType == '[Citizens]' then
-         table.insert(Citizens, LogParser.LogCitizenPartsToTable(parts))
-      elseif msgType == '[JobCompleted]' then
-         table.insert(JobCompleted, LogParser.logJobCompletedPartsToTable(parts))
-      elseif msgType == '[UnitDeath]' then
-         table.insert(UnitDeath, LogParser.logUnitDeathPartsToTable(parts))
+      local item = Json.json_to_table(line)
+
+      local msgType = item.type
+      if msgType == 'Announcement' then
+         table.insert(Announcement, item)
+      elseif msgType == 'ItemCreated' then
+         table.insert(ItemCreated, item)
+      elseif msgType == 'PetitionResidency' or msgType == 'PetitionLocation' then
+         table.insert(PetitionChange, item)
+      elseif msgType == 'Citizen' then
+         table.insert(Citizens, item)
+      elseif msgType == 'JobCompleted' then
+         table.insert(JobCompleted, item)
+      elseif msgType == 'UnitDeath' then
+         table.insert(UnitDeath, item)
       end
 
       -- Collect unique years
-      local year = parts[3] 
+      local year = item.date.year 
       
       if year then
          years[year] = true
@@ -251,14 +150,8 @@ function LogParser.analyzeCitizens(citizenLines, yearFilter)
       end
 
       -- check for new citizens and collect their info
-      if citizen.type == "newcitizen" then
-         local citizenInfo = {
-            id = citizen.id,
-            name = citizen.name,
-            race = citizen.race,
-            age = citizen.age,
-            sex = citizen.sex
-         }
+      if citizen.data.type == "newcitizen" then
+         local citizenInfo = citizen.data.citizen
          table.insert(newCitzens, citizenInfo)
       end
 
@@ -283,28 +176,28 @@ function LogParser.analyzeJobs(jobCompletedLines, yearFilter)
       if yearFilter and tostring(job.date.year) ~= tostring(yearFilter) then
          goto continueJobs
       end
-      if job.name == "Dig" or job.name == "Dig channel" or job.name == "Dig ramp" then
-         diggingCountByWorker[job.worker] = (diggingCountByWorker[job.worker] or 0) + 1
+      if job.data.job_name == "Dig" or job.data.job_name == "Dig channel" or job.data.job_name == "Dig ramp" then
+         diggingCountByWorker[job.data.job_unit.name] = (diggingCountByWorker[job.data.job_unit.name] or 0) + 1
          goto continueJobs
       end
-      if job.name == "Smooth floor" or job.name == "Smooth wall" then
-         smoothStoneCountByWorker[job.worker] = (smoothStoneCountByWorker[job.worker] or 0) + 1
+      if job.data.job_name == "Smooth floor" or job.data.job_name == "Smooth wall" then
+         smoothStoneCountByWorker[job.data.job_unit.name] = (smoothStoneCountByWorker[job.data.job_unit.name] or 0) + 1
          goto continueJobs
       end
-      if job.name == "Detail floor" or job.name == "Detail wall" then
-         encraveCountByWorker[job.worker] = (encraveCountByWorker[job.worker] or 0) + 1
+      if job.data.job_name == "Detail floor" or job.data.job_name == "Detail wall" then
+         encraveCountByWorker[job.data.job_unit.name] = (encraveCountByWorker[job.data.job_unit.name] or 0) + 1
          goto continueJobs
       end
       -- skip eat,drink, and sleep jobs to focus on labor jobs
-      if job.name == "Eat" or job.name == "Drink" or job.name == "Sleep" then
+      if job.data.job_name == "Eat" or job.data.job_name == "Drink" or job.data.job_name == "Sleep" then
          goto continueJobs
       end
 
       -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
       -- Extract job type and worker name from the log line
       -- Example format: [JobCompleted],name,Carpenter,type,Carpenter,worker,Urist McCarpenter
-      local jobType = job.name or "unknown"
-      local worker = job.worker or "unknown"
+      local jobType = job.data.job_name or "unknown"
+      local worker = job.data.job_unit.name or {name = "unknown"}
       -- Count job types
       jobTypeCount[jobType] = (jobTypeCount[jobType] or 0) + 1
       -- Count jobs per worker
@@ -362,11 +255,13 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
       if yearFilter and tostring(item.date.year) ~= tostring(yearFilter) then
         goto continueItems
       end
+
+
       table.insert(allItems, item)
-      local itemType = item.type or "unknown"
-      local creator = item.maker or "unknown"
-      local quality = item.quality or ""
-      local name = item.name or "(unnamed)"
+      local itemType = item.data.item_type or "unknown"
+      local creator = item.data.maker or "unknown"
+      local quality = item.data.quality or ""
+      local name = item.data.name or "(unnamed)"
 
       -- Count item types
       itemTypeCount[itemType] = (itemTypeCount[itemType] or 0) + 1
@@ -379,13 +274,13 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
       itemsByCreator[creator][itemType] = (itemsByCreator[creator][itemType] or 0) + 1
 
       -- Count masterwork items (quality == '5') and collect their names
-      if tostring(quality) == '5' then
+      if quality == 5 then
          masterworkCount = masterworkCount + 1
          table.insert(masterworks, item)
       end
 
       -- Collect artifacts
-      if item.artifact == "true" then
+      if item.data.is_artifact == true then
          table.insert(artifacts, item)
       end
 
@@ -399,10 +294,10 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
    local masterworkCreators = {}
    local numberOfMasterWorkCreators = 0
    for _, item in ipairs(masterworks) do
-      local creator = item.maker or "unknown"
+      local creator = item.data.maker.name or "unknown"
       masterworkCreators[creator] = (masterworkCreators[creator] or 0) + 1
       -- gather material types of masterworks and count them
-      local material = MaterialHelper.typeInfoByItemId(item.id) or "unknown"
+      local material = MaterialHelper.typeInfoByItemId(item.data.item_id) or "unknown"
       if masterworkMaterialTypes[material] then
          masterworkMaterialTypes[material] = masterworkMaterialTypes[material]  + 1
       else
@@ -411,12 +306,12 @@ function LogParser.analyzeItems(itemCreatedLines, yearFilter)
       
 
       -- track unique masterwork names and count how many unique masterwork creators there are
-      if not uniqueMasterworkNames[item.name] then
-         uniqueMasterworkNames[item.name] = 1
+      if not uniqueMasterworkNames[item.data.item_name] then
+         uniqueMasterworkNames[item.data.item_name] = 1
          numberOfMasterWorkCreators = numberOfMasterWorkCreators + 1
          uniqueCount = uniqueCount + 1
       else
-         uniqueMasterworkNames[item.name] = uniqueMasterworkNames[item.name] + 1
+         uniqueMasterworkNames[item.data.item_name] = uniqueMasterworkNames[item.data.item_name] + 1
       end
 
    end
@@ -449,7 +344,7 @@ function LogParser.printItemCreatedInformation(itemInfo)
    if itemInfo.MasterworkCount > 0 then
       print("Names of masterwork items:")
       for _, item in ipairs(itemInfo.Masterworks) do
-         print("  " .. item.name)
+         print("  " .. item.data.item_name)
       end
    end
    print("\nTop 10 most common item types:")

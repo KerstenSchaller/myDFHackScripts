@@ -36,7 +36,7 @@ StatsWindow.ATTRS {
 
 local parsedLogs = LogParser.parseAll()
 local years = {"All", table.unpack(LogParser.getYears())}
---local years = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"}
+--local years = {"102", "103", "104", "105", "106"}
 
 
 local longInitText = ""
@@ -50,7 +50,7 @@ end
 
 function addTokenisedText(tokens, text, fgColor, gap, setLineBreak)
 	local token = {
-		text=text,
+		text=dfhack.utf2df(text),
 		gap=gap or 0,
 		pen={fg=fgColor or COLOR_WHITE, bg=COLOR_BLACK},
 	}
@@ -113,8 +113,9 @@ function createPopulationPageText(year)
 	addTokenisedText(tokens, string.format("New citizens: %d", #citizenChanges.NewCitizens), COLOR_GREEN, 4, true)
 	for _, citizen in ipairs(citizenChanges.NewCitizens) do
 		local age = citizen.age
-		age = age:match("^([^.]+)") or age
-		local text = string.format("%s, a %s years old %s %s", dfhack.utf2df(citizen.name), age, citizen.sex, citizen.race)
+		age = math.floor(age)
+
+		local text = string.format("%s, a %d years old %s %s", dfhack.utf2df(citizen.name), age, citizen.sex, citizen.race)
 		addTokenisedText(tokens, text, COLOR_GREEN, 8, true)
 	end
 	addLinebreak(tokens)
@@ -123,7 +124,7 @@ function createPopulationPageText(year)
 		addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
 		for _, death in ipairs(unitDeaths.DwarfDeaths) do
 			-- age is a float string with . divider, we want to remove the decimal part for display
-			local text = string.format("%s, a %s years old %s %s died of %s", dfhack.utf2df(death.name), "TODO", "TODO", death.race, death.death_cause)
+			local text = string.format("%s, a %s years old %s %s died of %s", dfhack.utf2df(death.data.victim.name), "TODO", "TODO", death.data.victim.race, death.data.victim.death_cause)
 			addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
 		end
 	else
@@ -145,7 +146,7 @@ function createArtifactsPageText(year)
 	local itemInfo = LogParser.analyzeItems(parsedLogs.ItemCreated, year)
 	if #itemInfo.Artifacts > 0 then
 		for _, artifact in ipairs(itemInfo.Artifacts) do
-			local text = string.format("%s, a %s created by %s", artifact.desc, artifact.name, artifact.maker)
+			local text = string.format("%s, a %s created by %s", dfhack.utf2df(artifact.data.item_descr), dfhack.utf2df(artifact.data.item_name), dfhack.utf2df(artifact.data.maker.name))
 			addTokenisedText(tokens, text, COLOR_YELLOW, 4, true)
 		end
 	else
@@ -198,7 +199,7 @@ function createEconomyPageText(year)
 	addTokenisedText(tokens, string.format("Top Masterwork Creators:"), COLOR_WHITE, 4, true)
 	for _, pair in ipairs(LogParser.getTopN(masterworkCreators, 10)) do
 		local creator, count = pair[1], pair[2]
-		local text = string.format("%s created %d masterworks", creator, count)
+		local text = string.format("%s created %d masterworks", dfhack.utf2df(creator), count)
 		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
 	end
 
@@ -225,7 +226,7 @@ function createLaborPageText(year)
 
 	addTokenisedText(tokens,"Most active workers:", COLOR_WHITE, 4, true)
 	for _, pair in ipairs(LogParser.getTopN(jobInfos.WorkerCount, 10)) do
-		local worker, count = pair[1], pair[2]
+		local worker, count = dfhack.utf2df(pair[1]), pair[2]
 		local text = string.format("%s: %d jobs", worker, count)
 		addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
 	end

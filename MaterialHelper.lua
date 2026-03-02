@@ -177,7 +177,7 @@ end
 
 
 function MaterialHelper.typeInfoByItemId(itemId)
-    local item
+    local item = nil
     if type(itemId) == "number" then
         item = MaterialHelper.getItemById(itemId)
         if not item then
