@@ -52,8 +52,10 @@ function InvasionLogger.parseHistFigById(id)
         end
     end
     
-    function InvasionLogger.logInvasion(invasion)
-        dfhack.gui.showAnnouncement("Starting Logging Invasion", COLOR_RED)
+    function InvasionLogger.logInvasion(invasion, logType)
+
+
+
         local invasionData = {
             year = invasion.created_year,
             duration = invasion.duration_counter,
@@ -71,11 +73,8 @@ function InvasionLogger.parseHistFigById(id)
             army_controller = InvasionLogger.parseArmyControllerById(invasion.origin_master_army_controller_id),
             mission = df.mission_type[invasion.mission],
 
-
-
         }
-        LogHandler.write_log("Invasion", invasionData)
-        dfhack.gui.showAnnouncement("Logging Invasion", COLOR_RED)
+        LogHandler.write_log(logType, invasionData)
     end
 
     local InvasionActive = false
@@ -90,13 +89,32 @@ function InvasionLogger.parseHistFigById(id)
         currentInvasion = nil
     end
 
+    local numberOfInvasions = 0
+    local lastId = -1
+
     function InvasionLogger.watch()
+        local invasions = df.global.plotinfo.invasions.list
+        if numberOfInvasions ~= #invasions then
+            numberOfInvasions = #invasions
+            LogHandler.write_log("InvasionCountChanged", {count=numberOfInvasions})
+            local latestInvasion = invasions[#invasions-1]
+            if latestInvasion.active_size1 > 0 and latestInvasion.flags.active == true and latestInvasion ~= nil then
+                InvasionLogger.setInvasionActive(true, latestInvasion)
+                InvasionLogger.logInvasion(currentInvasion,"InvasionStart")
+            end
+            
+        end
+
+
         if InvasionActive then
-            if currentInvasion.active_size1 == 0 then
-                InvasionLogger.logInvasion(currentInvasion)
+            LogHandler.write_log("InvasionUpdate", {size=currentInvasion.size, active_size=currentInvasion.active_size1})
+            if currentInvasion.active_size1 == 0 or currentInvasion.flags.active == false and currentInvasion ~= nil then
+                InvasionLogger.logInvasion(currentInvasion,"InvasionEnd")
                 InvasionLogger.setInvasionInactive()
             end
         end
+
+
     end
 
 

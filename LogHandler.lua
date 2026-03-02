@@ -55,6 +55,8 @@ function LogHandler.write_log(messageType,message,filename)
 
 end
 
+
+
 -- Function to read the last line from the log file
 function LogHandler.read_last_log_line()
     local file = io.open(LOG_PATH, "r")
@@ -85,5 +87,52 @@ function LogHandler.readAllLogLines()
     file:close()
     return lines
 end    
+
+function LogHandler.compareDate(date1, date2)
+    -- returns 0 if equa, 1 if first is newer, 2 if second is newer
+    print(string.format("Comparing dates: %d.%d vs %d.%d", date1.year, date1.ticks, date2.year, date2.ticks))
+    if date1.year < date2.year then
+        return 2
+    elseif date1.year > date2.year then
+        return 1
+    elseif date1.year == date2.year and date1.ticks < date2.ticks then
+        return 2
+    elseif date1.year == date2.year and date1.ticks > date2.ticks then
+        return 1
+    end
+    return 0
+end
+
+function LogHandler.clearNewerEntriesInLog()
+    --local date = Helper.date()
+    local date = Helper.date()
+    date.year = 110
+    date.ticks = 15599
+
+    local lines = LogHandler.readAllLogLines()
+    --gather lines older than the current date and rewrite the log with only those lines to clear newer entries
+    local newLogContent = {}
+    for _, line in pairs(lines) do
+        if lintee == ""  or line == nil then
+            print("Empty line in log, skipping.")
+            goto continue
+        end
+        local logEntry = Json.json_to_table(line)
+        if logEntry and logEntry.date and LogHandler.compareDate(logEntry.date, date) == 2 then
+            table.insert(newLogContent, line)
+        end
+        ::continue::
+    end
+    local file = io.open(LOG_PATH, "w")
+    if file then
+        for _, line in pairs(newLogContent) do
+            file:write(line .. "\n")
+        end
+        file:flush()
+        file:close()
+    else
+        dfhack.printerr("Failed to open " .. LOG_PATH .. " for writing.")
+    end
+end
 
 return LogHandler

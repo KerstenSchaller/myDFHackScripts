@@ -310,6 +310,9 @@ function Helper.parsePerson(unit)
         motherId = unit.relationship_ids.Mother,
         fatherId = unit.relationship_ids.Father,
         spouseId = unit.relationship_ids.Spouse,
+        caged = unit.flags1.caged,
+        marauder = unit.flags1.marauder,
+        invasion_role = unit.invasion_role,
 	}
 end
 
@@ -336,6 +339,9 @@ function Helper.parseAnimal(unit)
         motherId = unit.relationship_ids.Mother,
         fatherId = unit.relationship_ids.Father,
         petOwner = unit.relationship_ids.PetOwner,
+        caged = unit.flags1.caged,
+        marauder = unit.flags1.marauder,
+        invasion_role = unit.invasion_role,
 	}
 end
 

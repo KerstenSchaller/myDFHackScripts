@@ -88,30 +88,15 @@ local function startWatcher()
 
     local function tick()
         if not watcherActive then return end
-        local retText = AnnouncementLogger.watch()
-        if retText ~= nil then
-            -- find string "A vile force of darkness" in retText and print the part after it
-            dfhack.gui.showAnnouncement("Announcement: " .. retText, COLOR_WHITE)
-            local searchStrings = {"A vile force of darkness","Snatcher"}
-            for _, searchString in ipairs(searchStrings) do
-                local startIndex = string.find(retText, searchString,1,true)
-                if startIndex ~= nil then
-                    dfhack.gui.showAnnouncement("Invasion detected: " .. startIndex, COLOR_RED)
-                    local invasions = df.global.plotinfo.invasions.list
-                    local invasion = invasions[#invasions-1]
-                    InvasionLogger.logInvasion(invasion)
-                end
-            end
-
-        end
-        CitezenLogger.watch()
         InvasionLogger.watch()
+        AnnouncementLogger.watch()
+        CitezenLogger.watch()
         BookAnnouncer.checkForNewBooks()
+        PetitionLogger.watch()
         StatsLogger.logAll()-- logs every month
         if watcherActive then
             dfhack.timeout(500, 'ticks', tick)
         end
-        PetitionLogger.watch()
     end
     tick()
 end
@@ -156,10 +141,12 @@ local function setupLogging()
     eventful.onJobCompleted[modId] = function(job)
         JobLogger.log(job)
     end
-    --eventful.onInvasion[modId] = function(invasion)
-    --    InvasionLogger.logInvasion(invasion)
-    --end
 
+
+end
+
+function clearNewerEntriesInLog()
+    LogHandler.clearNewerEntriesInLog()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------
@@ -170,6 +157,9 @@ if command == 'enable' then
     setupLogging()
 elseif command == 'disable' then
     shutdownLogging()
+elseif command == 'clearNewer' then
+    clearNewerEntriesInLog()
+
 else
     print("Usage: " .. modId .. " enable|disable")
 end
