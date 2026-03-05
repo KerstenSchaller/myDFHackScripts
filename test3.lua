@@ -107,7 +107,8 @@ function createOverviewPageText(year)
 end
 
 
-function createPopulationPageText(year)
+function createPopulationPageText(year, index)
+	local _index = index or 1
 	local tokens = {}
 	local title = "In all years of the fortress, in glory or decline:"
 	if year then
@@ -119,27 +120,34 @@ function createPopulationPageText(year)
 	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
 	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
 
-	-- list new citizens
-	addTokenisedText(tokens, string.format("New citizens: %d", #citizenChanges.NewCitizens), COLOR_GREEN, 4, true)
-	for _, citizen in ipairs(citizenChanges.NewCitizens) do
-		local age = citizen.age
-		age = math.floor(age)
+	if _index == 1 then
+		
+		-- list new citizens
+		addTokenisedText(tokens, string.format("New citizens: %d", #citizenChanges.NewCitizens), COLOR_GREEN, 4, true)
+		for _, citizen in ipairs(citizenChanges.NewCitizens) do
+			local age = citizen.age
+			age = math.floor(age)
 
-		local text = string.format("%s, a %d years old %s %s", dfhack.utf2df(citizen.name), age, citizen.sex, citizen.race)
-		addTokenisedText(tokens, text, COLOR_GREEN, 8, true)
-	end
-	addLinebreak(tokens)
-
-	if #unitDeaths.DwarfDeaths > 0 then
-		addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
-		for _, death in ipairs(unitDeaths.DwarfDeaths) do
-			-- age is a float string with . divider, we want to remove the decimal part for display
-			local age = math.floor(death.data.victim.age)
-			local text = string.format("%s, a %s years old %s %s died of %s", death.data.victim.name, age, death.data.victim.sex, death.data.victim.race, death.data.death_cause)
-			addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
+			local text = string.format("%s, a %d years old %s %s", dfhack.utf2df(citizen.name), age, citizen.sex, citizen.race)
+			addTokenisedText(tokens, text, COLOR_GREEN, 8, true)
 		end
-	else
-		addTokenisedText(tokens, "No dwarf deaths recorded.", COLOR_MAGENTA, 4, true)
+		addLinebreak(tokens)
+
+	elseif _index == 2 then
+		-- list deaths
+
+		if #unitDeaths.DwarfDeaths > 0 then
+			addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
+			for _, death in ipairs(unitDeaths.DwarfDeaths) do
+				-- age is a float string with . divider, we want to remove the decimal part for display
+				local age = math.floor(death.data.victim.age)
+				local text = string.format("%s, a %s years old %s %s died of %s", death.data.victim.name, age, death.data.victim.sex, death.data.victim.race, death.data.death_cause)
+				addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
+			end
+		else
+			addTokenisedText(tokens, "No dwarf deaths recorded.", COLOR_MAGENTA, 4, true)
+		end
+
 	end
 
 	return tokens
@@ -299,20 +307,108 @@ local OverviewPage = widgets.Panel{
 					}
 				}
 
+
+local popPageIndex = 2
 local PopulationPage = widgets.Panel{
 					frame={t=0,l=0},
 					autoarrange_subviews=false,
 					autoarrange_gap=1,
 					subviews={
+						widgets.Divider{
+							frame_style_l=false,
+							frame_style_r=false,
+							frame={t=1},
+						},
 						widgets.Label{
 							view_id='populationLabel',
-							frame={t=0,l=0,r=0},
+							frame={t=2,l=0,r=0},
 							auto_height=true,
 							text_pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
-							text=createPopulationPageText(),
+							text=createPopulationPageText(nil, popPageIndex),
 						}
 					}
 				}
+
+local JoinedButtonText = "Citizens Joined"
+local DiedButtonText = "Citizens Died"
+local BornButtonText = "Citizens Born"
+local AnimalButtonText = "Animals"
+local PetButtonText = "Pets"
+local lIndex = 0
+
+local JoinedButton = widgets.TextButton{
+							view_id='Joined',
+							frame={l=lIndex,t=0,w=#JoinedButtonText+2,h=1},
+							label=JoinedButtonText,
+							on_activate=function() 
+								popPageIndex = 1
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 1)) 
+								dfhack.gui.showAnnouncement("Showing new citizens", COLOR_GREEN)
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+lIndex = lIndex + #JoinedButtonText + 3
+
+local DiedButton = widgets.TextButton{
+							view_id='Died',
+							label=DiedButtonText,
+							frame={l=lIndex,t=0,w=#DiedButtonText+2,h=1},
+							on_activate=function() 
+								popPageIndex = 2
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 2)) 
+								dfhack.gui.showAnnouncement("Showing deaths", COLOR_MAGENTA)
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+lIndex = lIndex + #DiedButtonText + 3
+
+
+local BornButton = widgets.TextButton{
+							view_id='Born',
+							frame={l=lIndex,t=0,w=#BornButtonText+2,h=1},
+							label=BornButtonText,
+							on_activate=function() 
+								popPageIndex = 3
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 3)) 
+								dfhack.gui.showAnnouncement("Showing births", COLOR_CYAN)
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+lIndex = lIndex + #BornButtonText + 3
+
+local AnimalButton = widgets.TextButton{
+							view_id='Animals',
+							frame={l=lIndex,t=0,w=#AnimalButtonText+2,h=1},
+							label=AnimalButtonText,
+							on_activate=function() 
+								popPageIndex = 4
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 4)) 
+								dfhack.gui.showAnnouncement("Showing animals", COLOR_YELLOW)
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+
+lIndex = lIndex + #AnimalButtonText + 3
+
+local PetButton = widgets.TextButton{
+							view_id='Pets',
+							frame={l=lIndex,t=0,w=#PetButtonText+2,h=1},
+							label=PetButtonText,
+							on_activate=function() 
+								popPageIndex = 5
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 5)) 
+								dfhack.gui.showAnnouncement("Showing pets", COLOR_CYAN)
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+
+
+PopulationPage:addviews{JoinedButton, DiedButton, BornButton, AnimalButton, PetButton}
 
 local EconomyPage = widgets.Panel{
 					frame={t=0,l=0},
@@ -400,7 +496,7 @@ function updatePanels(year)
 		year = nil
 	end
 	OverviewPage.subviews.overviewLabel:setText(createOverviewPageText(year))
-	PopulationPage.subviews.populationLabel:setText(createPopulationPageText(year))
+	PopulationPage.subviews.populationLabel:setText(createPopulationPageText(year, popPageIndex))
 	EconomyPage.subviews.economyLabel:setText(createEconomyPageText(year))
 	ArtifactsPage.subviews.artifactsLabel:setText(createArtifactsPageText(year))
 	LaborPage.subviews.laborLabel:setText(createLaborPageText(year))
