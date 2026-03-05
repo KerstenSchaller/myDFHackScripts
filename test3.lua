@@ -207,15 +207,18 @@ function createPopulationPageText(year, index)
 	elseif _index == 4 then
 		-- list marriages
 		local currentMarriages = marriages
-		
+		local count = 0
 		if #currentMarriages > 0 then
-			
-			addTokenisedText(tokens, string.format("%d marriages were recorded.", #currentMarriages), COLOR_WHITE, 4, true)
+			if year == nil then
+				addTokenisedText(tokens, string.format("%d marriages were recorded in year %s.", #currentMarriages, year), COLOR_WHITE, 4, true)
+			end
+
 			addLinebreak(tokens)
 			for _, marriage in ipairs(currentMarriages) do
 				if year ~= tostring(marriage.year) and year ~= nil then
 					goto continueMarriage
 				end
+				count = count + 1
 				local unit1 = marriage.unit1
 				local unit2 = marriage.unit2
 				local color_unit1 = unit1.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
@@ -231,8 +234,10 @@ function createPopulationPageText(year, index)
 				addLinebreak(tokens)
 				::continueMarriage::
 			end
-		else
-			addTokenisedText(tokens, "No marriages recorded.", COLOR_MAGENTA, 4, true)
+			if count == 0 then
+				addTokenisedText(tokens, "No marriages recorded in year " .. year .. ".", COLOR_MAGENTA, 4, true)
+			end
+
 		end
 
 	end
