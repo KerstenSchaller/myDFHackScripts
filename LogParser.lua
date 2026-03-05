@@ -151,7 +151,7 @@ function LogParser.analyzeCitizens(citizenLines, yearFilter)
 
       -- check for new citizens and collect their info
       if citizen.data.type == "newcitizen" then
-         local citizenInfo = citizen.data.citizen
+         local citizenInfo = citizen
          table.insert(newCitzens, citizenInfo)
       end
 
@@ -376,6 +376,43 @@ function LogParser.printItemCreatedInformation(itemInfo)
    end
 end
 
+function getNameFromBirthAnnouncement(announcement)
+   -- get the string before the first occurance of ","
+   local name = string.match(announcement.data.text, "^(.-),")
+   return name or "unknown"
+end
+
+
+function LogParser.analyzeAnnouncements(announcementLines, yearFilter)
+   local announcementTypeCount = {}
+   local BirthCitizen = {}
+   for _, announcement in ipairs(announcementLines) do
+      if yearFilter and tostring(announcement.date.year) ~= tostring(yearFilter) then
+         goto continueAnnouncements
+      end
+      local announcementType = announcement.data.type or "unknown"
+      local typestr = df.announcement_type[announcementType].." "..tostring(announcementType)
+      announcementTypeCount[typestr] = (announcementTypeCount[typestr] or 0) + 1
+
+      if announcement.data.type == df.announcement_type.BIRTH_CITIZEN then
+         local mother = Helper.getUnitByName(getNameFromBirthAnnouncement(announcement))
+         local unit_born = Helper.getUnitByMotherId(mother and mother.id or -1)
+         table.insert(BirthCitizen, {
+            date = announcement.date,
+            mother_id = mother and mother.id or -1,
+            child = Helper.parseUnit(unit_born),
+            father_id = unit_born and unit_born.relationship_ids.Father or -1,
+         })
+      end
+
+      ::continueAnnouncements::
+   end
+   return {
+      AnnouncementTypeCount = announcementTypeCount,
+      BirthCitizen = BirthCitizen
+   }
+end
+
 
 local parsedLists = nil
 
@@ -410,5 +447,19 @@ for _, death in ipairs(deaths.DwarfDeaths) do
    print("Dwarf death in year 104: " .. death.name .. " cause: " .. death.death_cause)
 end
 
+for announcementType, count in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).AnnouncementTypeCount) do
+   if announcementType:find("BIRTH") then
+   else
+      goto continue
+   end
+   print("Announcement type: " .. announcementType .. " count: " .. count)
+   ::continue::
+end
+
+for id, birth in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).BirthCitizen) do
+   local motherName = birth.mother_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.mother_id).name) or "unknown"
+   local fatherName = birth.father_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.father_id).name) or "unknown"
+   print(birth.date.day.."-"..birth.date.month.."-"..birth.date.year.." Birth announcement: " .. motherName .. " gave birth to " .. birth.child.name .." father ".. fatherName)
+end
 
 return LogParser

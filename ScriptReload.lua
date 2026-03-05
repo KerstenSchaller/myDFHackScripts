@@ -20,3 +20,4 @@ package.loaded["LogParser"] = nil
 package.loaded["MaterialHelper"] = nil
 package.loaded["Json"] = nil
 package.loaded["StatsLogger"] = nil
+package.loaded["DeathHelper"] = nil

@@ -11,6 +11,8 @@ package.path = script_dir .. '?.lua;' .. script_dir .. '?/init.lua;' .. package.
 
 local LogParser = require('LogParser')
 local CurveWidget = require('CurveWidget')
+local Helper = require('Helper')
+local DeathHelper = require('DeathHelper')
 
 local view
 
@@ -119,17 +121,23 @@ function createPopulationPageText(year, index)
 
 	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
 	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
+	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
 
 	if _index == 1 then
 		
 		-- list new citizens
-		addTokenisedText(tokens, string.format("New citizens: %d", #citizenChanges.NewCitizens), COLOR_GREEN, 4, true)
+		addTokenisedText(tokens, string.format("%d citizens joined the fortress.", #citizenChanges.NewCitizens), COLOR_WHITE, 4, true)
+		addLinebreak(tokens)
 		for _, citizen in ipairs(citizenChanges.NewCitizens) do
-			local age = citizen.age
+			local age = citizen.data.citizen.age
+			local color = citizen.data.citizen.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
 			age = math.floor(age)
 
-			local text = string.format("%s, a %d years old %s %s", dfhack.utf2df(citizen.name), age, citizen.sex, citizen.race)
-			addTokenisedText(tokens, text, COLOR_GREEN, 8, true)
+			local text = string.format(" a %d years old %s %s joined the fortress", age, citizen.data.citizen.sex, citizen.data.citizen.race)
+			addTokenisedText(tokens, "On " .. citizen.date.day.."-"..citizen.date.month.."-"..citizen.date.year, COLOR_WHITE, 8, false)
+			addTokenisedText(tokens, dfhack.utf2df(citizen.data.citizen.name), color, 1, false)
+			addTokenisedText(tokens, text, COLOR_WHITE, 0, true)
+			addLinebreak(tokens)
 		end
 		addLinebreak(tokens)
 
@@ -137,15 +145,48 @@ function createPopulationPageText(year, index)
 		-- list deaths
 
 		if #unitDeaths.DwarfDeaths > 0 then
-			addTokenisedText(tokens, string.format("Dwarf deaths: %d", #unitDeaths.DwarfDeaths), COLOR_MAGENTA, 4, true)
+			addTokenisedText(tokens, string.format("%d citizens perished.", #unitDeaths.DwarfDeaths), COLOR_WHITE, 4, true)
+			addLinebreak(tokens)
 			for _, death in ipairs(unitDeaths.DwarfDeaths) do
 				-- age is a float string with . divider, we want to remove the decimal part for display
 				local age = math.floor(death.data.victim.age)
-				local text = string.format("%s, a %s years old %s %s died of %s", death.data.victim.name, age, death.data.victim.sex, death.data.victim.race, death.data.death_cause)
-				addTokenisedText(tokens, text, COLOR_MAGENTA, 8, true)
+				local color = death.data.victim.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
+				addTokenisedText(tokens,"On "..death.date.day.."-"..death.date.month.."-"..death.date.year, COLOR_WHITE, 8, false)
+				addTokenisedText(tokens, death.data.victim.name, color, 1, false)
+				addTokenisedText(tokens, string.format(" a %d years old %s %s", age, death.data.victim.sex, death.data.victim.race), COLOR_WHITE, 0, false)
+				addTokenisedText(tokens, DeathHelper.getDeathCauseByString(death.data.death_cause), COLOR_WHITE, 0, true)
+				addLinebreak(tokens)
 			end
 		else
 			addTokenisedText(tokens, "No dwarf deaths recorded.", COLOR_MAGENTA, 4, true)
+		end
+
+	elseif _index == 3 then
+		-- list births
+		local births=announcements.BirthCitizen
+		if #births > 0 then
+			addTokenisedText(tokens, string.format("%d children were born.", #births), COLOR_WHITE, 4, true)
+			addLinebreak(tokens)
+			for _, birth in ipairs(births) do
+				local mother = Helper.getUnitById(birth.mother_id)
+				local father = Helper.getUnitById(birth.father_id)
+				local motherAge = mother and math.floor(dfhack.units.getAge(mother)) or "unknown"
+				local fatherAge = father and math.floor(dfhack.units.getAge(father)) or "unknown"
+				local motherName = mother  and (dfhack.translation.translateName(mother.name)) or "unknown"
+				local fatherName = father ~= -1 and (dfhack.translation.translateName(father.name)) or "unknown"
+				addTokenisedText(tokens,"On " .. birth.date.day.."-"..birth.date.month.."-"..birth.date.year, COLOR_WHITE, 8, false)
+				addTokenisedText(tokens, birth.child.name, COLOR_GREEN, 1, false)
+				addTokenisedText(tokens, " was born to the mother ",COLOR_WHITE, 0, false)
+				addTokenisedText(tokens, motherName, COLOR_LIGHTMAGENTA, 0, false)
+				addTokenisedText(tokens, " (age ".. motherAge ..")", COLOR_WHITE, 0, true)
+				addTokenisedText(tokens, "and the father ",COLOR_WHITE, 8, false)
+				addTokenisedText(tokens, fatherName, COLOR_CYAN, 0, false)
+				addTokenisedText(tokens, " (age ".. fatherAge ..")", COLOR_WHITE, 0, true)
+
+				addLinebreak(tokens)
+			end
+		else
+			addTokenisedText(tokens, "No births recorded.", COLOR_CYAN, 4, true)
 		end
 
 	end
@@ -308,7 +349,7 @@ local OverviewPage = widgets.Panel{
 				}
 
 
-local popPageIndex = 2
+local popPageIndex = 1
 local PopulationPage = widgets.Panel{
 					frame={t=0,l=0},
 					autoarrange_subviews=false,

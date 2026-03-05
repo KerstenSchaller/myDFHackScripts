@@ -219,9 +219,9 @@ end
 function Helper.getUnitNameById(id)
     local unit = Helper.getUnitById(id)
     if unit then
-        local unitname = dfhack.translation.translateName(unit.name)
+        local unitname = dfhack.utf2df(dfhack.translation.translateName(unit.name))
         if unitname == "" then
-            unitname = dfhack.translation.translateName(unit.name)
+            unitname = dfhack.utf2df(dfhack.translation.translateName(unit.name))
         end
         return unitname
     else
@@ -238,6 +238,26 @@ function Helper.isUnitCitizen(unitId)
         end
     end
     return false
+end
+
+function Helper.getUnitByName(name)
+    for _, unit in ipairs(df.global.world.units.all) do
+        local unitname = dfhack.df2utf(dfhack.translation.translateName(unit.name))
+        -- unit name contained in name
+            if string.find(name, unitname) then
+                return unit
+            end
+    end
+    return nil
+end
+
+function Helper.getUnitByMotherId(motherId)
+    for _, unit in ipairs(df.global.world.units.all) do
+        if unit.relationship_ids.Mother == motherId then
+            return unit
+        end
+    end
+    return nil
 end
 
 function getKillerIdByVictimId(victimId)
