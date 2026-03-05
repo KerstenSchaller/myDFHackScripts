@@ -270,6 +270,20 @@ function createLaborPageText(year)
 	return tokens
 end
 
+function createWarfarePageText(year)
+	local tokens = {}
+	local title = "In all years of the fortress, in glory or decline:"
+	if year then
+		title = "In year " .. year .. " of the fortress:"
+	end
+	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
+	addLinebreak(tokens)
+
+	-- not implemented yet, waiting for invasion and battle loggers
+
+	return tokens
+end
+
 local OverviewPage = widgets.Panel{
 					frame={t=0,l=0},
 					autoarrange_subviews=false,
@@ -346,9 +360,19 @@ local ArtifactsPage = widgets.Panel{
 					}
 				}
 
-local WarfarePage = widgets.Label{
+local WarfarePage = widgets.Panel{
 					frame={t=0,l=0},
-					text="Warfare page",
+					autoarrange_subviews=false,
+					autoarrange_gap=1,
+					subviews={
+						widgets.Label{
+							view_id='warfareLabel',
+							frame={t=0,l=0,r=0},
+							auto_height=true,
+							text_pen = {fg=COLOR_WHITE, bg=COLOR_BLACK},
+							text=createWarfarePageText(),
+						}
+					}
 				}
 
 local contentPanel = widgets.Panel{
