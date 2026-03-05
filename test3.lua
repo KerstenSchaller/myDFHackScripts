@@ -52,7 +52,8 @@ end
 
 function addTokenisedText(tokens, text, fgColor, gap, setLineBreak)
 	local token = {
-		text=dfhack.utf2df(text),
+		--text=dfhack.utf2df(text),
+		text=text,
 		gap=gap or 0,
 		pen={fg=fgColor or COLOR_WHITE, bg=COLOR_BLACK},
 	}
@@ -81,7 +82,20 @@ function createOverviewPageText(year)
 	addTokenisedText(tokens, str1, COLOR_GREEN, 4, true)
 	addLinebreak(tokens)
 
-	-- list new citizens
+	
+	--list births
+	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
+	local str3=string.format("There were %d births recorded.", #announcements.BirthCitizen)
+	addTokenisedText(tokens, str3, COLOR_GREEN, 4, true)
+	addLinebreak(tokens)
+	
+	--list marriages
+	local marriages = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog).Marriages
+	local str4=string.format("There were %d marriages recorded.", #marriages)
+	addTokenisedText(tokens, str4, COLOR_GREEN, 4, true)
+	addLinebreak(tokens)
+	
+	-- list deaths
 	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
 	local str2=string.format("The dwarves lost %d of their kind.", #unitDeaths.DwarfDeaths)
 	addTokenisedText(tokens, str2, COLOR_MAGENTA, 4, true)
@@ -122,6 +136,7 @@ function createPopulationPageText(year, index)
 	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
 	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
 	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
+	local marriages = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog).Marriages
 
 	if _index == 1 then
 		
@@ -152,7 +167,7 @@ function createPopulationPageText(year, index)
 				local age = math.floor(death.data.victim.age)
 				local color = death.data.victim.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
 				addTokenisedText(tokens,"On "..death.date.day.."-"..death.date.month.."-"..death.date.year, COLOR_WHITE, 8, false)
-				addTokenisedText(tokens, death.data.victim.name, color, 1, false)
+				addTokenisedText(tokens, dfhack.utf2df(death.data.victim.name), color, 1, false)
 				addTokenisedText(tokens, string.format(" a %d years old %s %s", age, death.data.victim.sex, death.data.victim.race), COLOR_WHITE, 0, false)
 				addTokenisedText(tokens, DeathHelper.getDeathCauseByString(death.data.death_cause), COLOR_WHITE, 0, true)
 				addLinebreak(tokens)
@@ -187,6 +202,37 @@ function createPopulationPageText(year, index)
 			end
 		else
 			addTokenisedText(tokens, "No births recorded.", COLOR_CYAN, 4, true)
+		end
+
+	elseif _index == 4 then
+		-- list marriages
+		local currentMarriages = marriages
+		
+		if #currentMarriages > 0 then
+			
+			addTokenisedText(tokens, string.format("%d marriages were recorded.", #currentMarriages), COLOR_WHITE, 4, true)
+			addLinebreak(tokens)
+			for _, marriage in ipairs(currentMarriages) do
+				if year ~= tostring(marriage.year) and year ~= nil then
+					goto continueMarriage
+				end
+				local unit1 = marriage.unit1
+				local unit2 = marriage.unit2
+				local color_unit1 = unit1.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
+				local color_unit2 = unit2.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
+				local unit1Name = unit1.name
+				local unit2Name = unit2.name
+				addTokenisedText(tokens,"In " .. marriage.year, COLOR_WHITE, 8, false)
+				addTokenisedText(tokens, unit1Name, color_unit1, 1, false)
+				addTokenisedText(tokens,",a " .. math.floor(unit1.age) .. " years old ".. unit1.sex .. " " .. unit1.race, COLOR_WHITE, 0, false)
+				addTokenisedText(tokens, " married ", COLOR_WHITE, 0, false)
+				addTokenisedText(tokens, unit2Name, color_unit2, 0, true)
+				addTokenisedText(tokens,",a " .. math.floor(unit2.age) .. " years old ".. unit2.sex .. " " .. unit2.race, COLOR_WHITE, 8, true)
+				addLinebreak(tokens)
+				::continueMarriage::
+			end
+		else
+			addTokenisedText(tokens, "No marriages recorded.", COLOR_MAGENTA, 4, true)
 		end
 
 	end
@@ -373,6 +419,7 @@ local PopulationPage = widgets.Panel{
 local JoinedButtonText = "Citizens Joined"
 local DiedButtonText = "Citizens Died"
 local BornButtonText = "Citizens Born"
+local MarriageButtonText = "Marriages"
 local AnimalButtonText = "Animals"
 local PetButtonText = "Pets"
 local lIndex = 0
@@ -384,7 +431,6 @@ local JoinedButton = widgets.TextButton{
 							on_activate=function() 
 								popPageIndex = 1
 								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 1)) 
-								dfhack.gui.showAnnouncement("Showing new citizens", COLOR_GREEN)
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -398,7 +444,6 @@ local DiedButton = widgets.TextButton{
 							on_activate=function() 
 								popPageIndex = 2
 								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 2)) 
-								dfhack.gui.showAnnouncement("Showing deaths", COLOR_MAGENTA)
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -413,21 +458,33 @@ local BornButton = widgets.TextButton{
 							on_activate=function() 
 								popPageIndex = 3
 								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 3)) 
-								dfhack.gui.showAnnouncement("Showing births", COLOR_CYAN)
 								self:updateLayout()
 							end,
 							enabled=true,
 						}
 lIndex = lIndex + #BornButtonText + 3
 
+local MarriageButton = widgets.TextButton{
+							view_id='Marriages',
+							frame={l=lIndex,t=0,w=#MarriageButtonText+2,h=1},
+							label=MarriageButtonText,
+							on_activate=function() 
+								popPageIndex = 4
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 4)) 
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+
+lIndex = lIndex + #MarriageButtonText + 3
+
 local AnimalButton = widgets.TextButton{
 							view_id='Animals',
 							frame={l=lIndex,t=0,w=#AnimalButtonText+2,h=1},
 							label=AnimalButtonText,
 							on_activate=function() 
-								popPageIndex = 4
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 4)) 
-								dfhack.gui.showAnnouncement("Showing animals", COLOR_YELLOW)
+								popPageIndex = 5
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 5)) 
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -440,8 +497,8 @@ local PetButton = widgets.TextButton{
 							frame={l=lIndex,t=0,w=#PetButtonText+2,h=1},
 							label=PetButtonText,
 							on_activate=function() 
-								popPageIndex = 5
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 5)) 
+								popPageIndex = 6
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 6)) 
 								dfhack.gui.showAnnouncement("Showing pets", COLOR_CYAN)
 								self:updateLayout()
 							end,
@@ -449,7 +506,7 @@ local PetButton = widgets.TextButton{
 						}
 
 
-PopulationPage:addviews{JoinedButton, DiedButton, BornButton, AnimalButton, PetButton}
+PopulationPage:addviews{JoinedButton, DiedButton, BornButton,MarriageButton, AnimalButton, PetButton}
 
 local EconomyPage = widgets.Panel{
 					frame={t=0,l=0},

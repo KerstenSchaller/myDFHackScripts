@@ -77,6 +77,7 @@ function LogParser.parseLogLinesByType(logLines)
    local JobCompleted = {}
    local UnitDeath = {}
    local years = {}
+   local AllCitizensAnnualLog = {}
 
    for _, line in ipairs(logLines) do
       local item = Json.json_to_table(line)
@@ -94,6 +95,8 @@ function LogParser.parseLogLinesByType(logLines)
          table.insert(JobCompleted, item)
       elseif msgType == 'UnitDeath' then
          table.insert(UnitDeath, item)
+      elseif msgType == "AllCitizens" then
+         table.insert(AllCitizensAnnualLog, item)
       end
 
       -- Collect unique years
@@ -123,6 +126,7 @@ function LogParser.parseLogLinesByType(logLines)
       Citizens = Citizens,
       JobCompleted = JobCompleted,
       UnitDeath = UnitDeath,
+      AllCitizensAnnualLog = AllCitizensAnnualLog,
       Years = stringYears
    }
 end
@@ -139,6 +143,134 @@ function LogParser.getTopN(tbl, n)
       table.insert(result, arr[i])
    end
    return result
+end
+
+function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
+
+   -- Group logs by year and month
+   local logsByYearMonth = {}
+   for _, log in ipairs(allCitizensAnnualLog) do
+      local year = log.date.year
+      local month = log.date.month
+      logsByYearMonth[year] = logsByYearMonth[year] or {}
+      logsByYearMonth[year][month] = log
+   end
+
+   -- Find the best log for each year: prefer month==0, else lowest month
+   local logsByYear = {}
+   for year, months in pairs(logsByYearMonth) do
+      if months[0] then
+         logsByYear[year] = months[0]
+      else
+         -- Find the lowest month entry for this year
+         local minMonth, minLog = nil, nil
+         for m, log in pairs(months) do
+            if minMonth == nil or m < minMonth then
+               minMonth = m
+               minLog = log
+            end
+         end
+         logsByYear[year] = minLog
+      end
+   end
+
+   -- Sort years ascending
+   local sortedYears = {}
+   for year in pairs(logsByYear) do table.insert(sortedYears, year) end
+   table.sort(sortedYears)
+
+
+
+   -- Helper: build a map of unit_id -> spouse_id for a log
+   local function getMarriagesMap(log)
+      local marriages = {}
+      for _, unit in ipairs(log.data) do
+         if unit.spouseId and unit.spouseId and unit.spouseId ~= -1 then
+            --print("Found marriage in log: Unit " .. unit.id .. " is married to " .. unit.spouseId)
+            marriages[unit.id] = unit.spouseId
+         end
+      end
+      return marriages
+   end
+
+   -- Find marriages by comparing subsequent logs
+   local marriages = {}
+   for i = 2, #sortedYears do
+      local prevLog = logsByYear[sortedYears[i-1]]
+      local currLog = logsByYear[sortedYears[i]]
+      local prevMarriages = getMarriagesMap(prevLog)
+      local currMarriages = getMarriagesMap(currLog)
+      -- For each unit in curr, if they have a spouse now but not before, it's a new marriage
+      for unit_id, spouse_id in pairs(currMarriages) do
+         if (not prevMarriages[unit_id] or prevMarriages[unit_id] ~= spouse_id) and spouse_id ~= -1 then
+            -- Only add if the spouse reciprocates
+            if currMarriages[spouse_id] == unit_id then
+               -- Avoid duplicates (A,B) and (B,A)
+               local key = tostring(math.min(unit_id, spouse_id)) .. '-' .. tostring(math.max(unit_id, spouse_id))
+               if not marriages[key] then
+                  marriages[key] = {
+                     year = sortedYears[i],
+                     unit1 = unit_id,
+                     unit2 = spouse_id,
+                  }
+               end
+            end
+         end
+      end
+   end
+
+   -- If only one year is available, try to use a mid-year entry as the previous log
+   if #sortedYears == 1 then
+      local onlyYear = sortedYears[1]
+      local months = logsByYearMonth[onlyYear]
+      if months then
+         local monthList = {}
+         for m in pairs(months) do table.insert(monthList, m) end
+         table.sort(monthList)
+         for i = 2, #monthList do
+            local prevLog = months[monthList[i-1]]
+            local currLog = months[monthList[i]]
+            local prevMarriages = getMarriagesMap(prevLog)
+            local currMarriages = getMarriagesMap(currLog)
+            for unit_id, spouse_id in pairs(currMarriages) do
+               if (not prevMarriages[unit_id] or prevMarriages[unit_id] ~= spouse_id) and spouse_id ~= -1 then
+                  if currMarriages[spouse_id] == unit_id then
+                     local key = tostring(math.min(unit_id, spouse_id)) .. '-' .. tostring(math.max(unit_id, spouse_id))
+                     if not marriages[key] then
+                        marriages[key] = {
+                           year = onlyYear,
+                           month = monthList[i],
+                           unit1 = unit_id,
+                           unit2 = spouse_id,
+                        }
+                     end
+                  end
+               end
+            end
+         end
+      end
+   end
+
+
+
+
+   -- Convert marriages to list
+   local marriageList = {}
+   for _, m in pairs(marriages) do
+      local unit1 = Helper.parseUnit(Helper.getUnitById(m.unit1))
+      local unit2 = Helper.parseUnit(Helper.getUnitById(m.unit2))
+      local updatedMarriage = {
+         year = m.year,
+         month = m.month or 0,
+         unit1 = unit1,
+         unit2 = unit2
+      }
+       table.insert(marriageList, updatedMarriage) 
+   end
+
+   return {
+      Marriages = marriageList
+   }
 end
 
 function LogParser.analyzeCitizens(citizenLines, yearFilter)
@@ -430,36 +562,51 @@ local parsedLists = LogParser.parseAll()
 local itemInfo = LogParser.analyzeItems(parsedLists.ItemCreated, 103)
 local jobInfo = LogParser.analyzeJobs(parsedLists.JobCompleted, 103)
 
-LogParser.printItemCreatedInformation(itemInfo)
-LogParser.printJobInfo(jobInfo)
-print("Citizens born in year 102: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 102).NewCitizens)
-print("Citizens born in year 103: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 103).NewCitizens)
-print("Citizens born in year 104: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 104).NewCitizens)
-print("Citizens born in year 105: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 105).NewCitizens)
+if false then
+   LogParser.printItemCreatedInformation(itemInfo)
+   LogParser.printJobInfo(jobInfo)
+   print("Citizens born in year 102: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 102).NewCitizens)
+   print("Citizens born in year 103: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 103).NewCitizens)
+   print("Citizens born in year 104: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 104).NewCitizens)
+   print("Citizens born in year 105: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 105).NewCitizens)
 
-print("Dwarf deaths in year 102: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 102).DwarfDeaths)
-print("Dwarf deaths in year 103: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 103).DwarfDeaths)
-print("Dwarf deaths in year 104: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 104).DwarfDeaths)
-print("Dwarf deaths in year 105: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 105).DwarfDeaths)
+   print("Dwarf deaths in year 102: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 102).DwarfDeaths)
+   print("Dwarf deaths in year 103: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 103).DwarfDeaths)
+   print("Dwarf deaths in year 104: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 104).DwarfDeaths)
+   print("Dwarf deaths in year 105: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 105).DwarfDeaths)
 
-local deaths = LogParser.analyzeUnitDeaths(parsedLists.UnitDeath,104)
-for _, death in ipairs(deaths.DwarfDeaths) do
-   print("Dwarf death in year 104: " .. death.name .. " cause: " .. death.death_cause)
-end
-
-for announcementType, count in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).AnnouncementTypeCount) do
-   if announcementType:find("BIRTH") then
-   else
-      goto continue
+   local deaths = LogParser.analyzeUnitDeaths(parsedLists.UnitDeath,104)
+   for _, death in ipairs(deaths.DwarfDeaths) do
+      print("Dwarf death in year 104: " .. death.name .. " cause: " .. death.death_cause)
    end
-   print("Announcement type: " .. announcementType .. " count: " .. count)
-   ::continue::
+
+   for announcementType, count in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).AnnouncementTypeCount) do
+      if announcementType:find("BIRTH") then
+      else
+         goto continue
+      end
+      print("Announcement type: " .. announcementType .. " count: " .. count)
+      ::continue::
+   end
+
+   for id, birth in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).BirthCitizen) do
+      local motherName = birth.mother_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.mother_id).name) or "unknown"
+      local fatherName = birth.father_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.father_id).name) or "unknown"
+      print(birth.date.day.."-"..birth.date.month.."-"..birth.date.year.." Birth announcement: " .. motherName .. " gave birth to " .. birth.child.name .." father ".. fatherName)
+   end
+
 end
 
-for id, birth in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).BirthCitizen) do
-   local motherName = birth.mother_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.mother_id).name) or "unknown"
-   local fatherName = birth.father_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.father_id).name) or "unknown"
-   print(birth.date.day.."-"..birth.date.month.."-"..birth.date.year.." Birth announcement: " .. motherName .. " gave birth to " .. birth.child.name .." father ".. fatherName)
-end
+   local analysis = LogParser.analyzeAnualCitizenList(parsedLists.AllCitizensAnnualLog, nil)
+   print("number of anual citizen logs: " .. #parsedLists.AllCitizensAnnualLog)
+   print(" Marriages: " .. #analysis.Marriages)
+   for _, marriage in ipairs(analysis.Marriages) do
+      local unit1Name = marriage.unit1.name
+      local unit2Name = marriage.unit2.name
+      print("Year " .. marriage.year .. " Marriage: " .. unit1Name .. " is married to " .. unit2Name)
+      Helper.printTable(marriage)
+      break
+   end
+
 
 return LogParser
