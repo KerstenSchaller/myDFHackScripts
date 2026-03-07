@@ -216,6 +216,10 @@ function Helper.getUnitById(id)
     return nil
 end
 
+function Helper.removeStringFromString(str, toRemove)
+    return str:gsub(toRemove, "")
+end
+
 function Helper.getUnitNameById(id)
     local unit = Helper.getUnitById(id)
     if unit then

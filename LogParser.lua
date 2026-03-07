@@ -29,6 +29,8 @@ function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
 
    local killedByCitizen={}
    local dwarfDeaths = {}
+   local tameAnimalDeaths = {}
+   local petDeaths = {}
    for _, death in ipairs(unitDeathLines) do
       if yearFilter and death.date.year ~= yearFilter then
          goto continueDeaths
@@ -39,12 +41,21 @@ function LogParser.analyzeUnitDeaths(unitDeathLines, yearFilter)
       if death.data.victim.race == "dwarf" then
          table.insert(dwarfDeaths, death)
       end
+      if death.data.victim.isPet == true then
+         table.insert(petDeaths, death)
+         goto continueDeaths
+      end
+      if death.data.victim.isAnimal == true and death.data.victim.isTame == true then
+         table.insert(tameAnimalDeaths, death)
+      end
       ::continueDeaths::
    end
    
    return {
       KilledByCitizen = killedByCitizen,
-      DwarfDeaths = dwarfDeaths
+      DwarfDeaths = dwarfDeaths,
+      TameAnimalDeaths = tameAnimalDeaths,
+      PetDeaths = petDeaths
    }
 end
 
@@ -78,6 +89,7 @@ function LogParser.parseLogLinesByType(logLines)
    local UnitDeath = {}
    local years = {}
    local AllCitizensAnnualLog = {}
+   local VisitorsAndOthers = {}
 
    for _, line in ipairs(logLines) do
       local item = Json.json_to_table(line)
@@ -97,6 +109,8 @@ function LogParser.parseLogLinesByType(logLines)
          table.insert(UnitDeath, item)
       elseif msgType == "AllCitizens" then
          table.insert(AllCitizensAnnualLog, item)
+      elseif msgType == "VisitorsAndOthers" then
+         table.insert(VisitorsAndOthers, item)
       end
 
       -- Collect unique years
@@ -127,6 +141,7 @@ function LogParser.parseLogLinesByType(logLines)
       JobCompleted = JobCompleted,
       UnitDeath = UnitDeath,
       AllCitizensAnnualLog = AllCitizensAnnualLog,
+      VisitorsAndOthers = VisitorsAndOthers,
       Years = stringYears
    }
 end
@@ -143,6 +158,135 @@ function LogParser.getTopN(tbl, n)
       table.insert(result, arr[i])
    end
    return result
+end
+
+
+
+function LogParser.analyzeVisitorsAndOthers(visitorLines)
+   -- Group logs by year and month
+   local logsByYearMonth = {}
+   for _, log in ipairs(visitorLines) do
+      local year = log.date.year
+      local month = log.date.month
+      logsByYearMonth[year] = logsByYearMonth[year] or {}
+      logsByYearMonth[year][month] = log
+   end
+
+   -- Sort years and months
+   local sortedYears = {}
+   for year in pairs(logsByYearMonth) do table.insert(sortedYears, year) end
+   table.sort(sortedYears)
+
+   -- Helper to extract unit data by id from a group (table of units or dict of units)
+   local function extractUnitMap(group)
+      local map = {}
+      if type(group) == 'table' then
+         for _, entry in ipairs(group) do
+            if entry.id then map[entry.id] = entry end
+         end
+         for k, v in pairs(group) do
+            if type(k) == 'number' and v and v.id then map[v.id] = v end
+         end
+      end
+      return map
+   end
+
+   -- Track first seen and last seen
+   local firstSeen = {merchants = {}, guests = {}, ghosts = {}, animals = {}, pets = {}}
+   local lastSeen = {merchants = {}, guests = {}, ghosts = {}, animals = {}, pets = {}}
+   local unitData = {merchants = {}, guests = {}, ghosts = {}, animals = {}, pets = {}}
+
+   -- Track who is present in the previous month
+   local prevPresent = {merchants = {}, guests = {}, ghosts = {}, animals = {}, pets = {}}
+
+   for _, year in ipairs(sortedYears) do
+      local months = logsByYearMonth[year]
+      local sortedMonths = {}
+      for m in pairs(months) do table.insert(sortedMonths, m) end
+      table.sort(sortedMonths)
+      for _, month in ipairs(sortedMonths) do
+         local log = months[month]
+         local data = log.data or {}
+         -- Get unit maps
+         local merchantMap = extractUnitMap(data.merchants or {})
+         local guestMap = extractUnitMap(data.guests or {})
+         local ghostMap = extractUnitMap(data.ghosts or {})
+         local animalMap = {}
+         local petMap = {}
+         -- Animals and pets may be in lifestock (array) or pets (dict/array)
+         if type(data.lifestock) == 'table' then
+            for _, entry in ipairs(data.lifestock) do
+               if entry.id then
+                  if entry.isAnimal then
+                     animalMap[entry.id] = entry
+                  end
+                  if entry.isPet then
+                     petMap[entry.id] = entry
+                  end
+               end
+            end
+         end
+         if type(data.pets) == 'table' then
+            for _, entry in ipairs(data.pets) do
+               if entry.id then petMap[entry.id] = entry end
+            end
+            for k, v in pairs(data.pets) do
+               if type(k) == 'number' and v and v.id then petMap[v.id] = v end
+            end
+         end
+
+         -- Convert to sets for fast lookup
+         local merchantSet, guestSet, ghostSet = {}, {}, {}
+         local animalSet, petSet = {}, {}
+         for id, entry in pairs(merchantMap) do merchantSet[id] = true end
+         for id, entry in pairs(guestMap) do guestSet[id] = true end
+         for id, entry in pairs(ghostMap) do ghostSet[id] = true end
+         for id, entry in pairs(animalMap) do animalSet[id] = true end
+         for id, entry in pairs(petMap) do petSet[id] = true end
+
+         -- Helper to process each type
+         local function processType(typeName, map, set)
+            for id, entry in pairs(map) do
+               if not firstSeen[typeName][id] then
+                  firstSeen[typeName][id] = {year = year, month = month}
+                  unitData[typeName][id] = entry
+               end
+               lastSeen[typeName][id] = {year = year, month = month}
+               unitData[typeName][id] = entry
+            end
+            prevPresent[typeName] = set
+         end
+
+         processType('merchants', merchantMap, merchantSet)
+         processType('guests', guestMap, guestSet)
+         processType('ghosts', ghostMap, ghostSet)
+         processType('animals', animalMap, animalSet)
+         processType('pets', petMap, petSet)
+      end
+   end
+
+   -- Build sorted lists for each type
+   local function buildList(typeName)
+      local list = {}
+      for id, data in pairs(unitData[typeName]) do
+         table.insert(list, {
+            id = id,
+            data = data,
+            FirstSeen = firstSeen[typeName][id],
+            LastSeen = lastSeen[typeName][id]
+         })
+      end
+      table.sort(list, function(a, b) return a.id < b.id end)
+      return list
+   end
+
+   return {
+      Merchants = buildList('merchants'),
+      Guests = buildList('guests'),
+      Ghosts = buildList('ghosts'),
+      Animals = buildList('animals'),
+      Pets = buildList('pets')
+   }
 end
 
 function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
@@ -508,16 +652,40 @@ function LogParser.printItemCreatedInformation(itemInfo)
    end
 end
 
-function getNameFromBirthAnnouncement(announcement)
-   -- get the string before the first occurance of ","
-   local name = string.match(announcement.data.text, "^(.-),")
-   return name or "unknown"
-end
+
+
+   -- getNameFromBirthAnnouncement(input, delimiter, getBefore)
+   -- input: string or announcement object
+   -- delimiter: string to search for (default ",")
+   -- getBefore: if true (default), return before delimiter; if false, return after delimiter
+   function getNameFromBirthAnnouncement(input, delimiter, getBefore)
+      local text = input
+      if type(input) == 'table' and input.data and input.data.text then
+         text = input.data.text
+      end
+      delimiter = delimiter or ','
+      if not text then return 'unknown' end
+      local pattern
+      if getBefore == false then
+         -- Get after delimiter
+         pattern = delimiter == '' and '^()$' or delimiter .. '%s*(.*)'
+         local after = string.match(text, pattern)
+         return after or 'unknown'
+      else
+         -- Get before delimiter
+         pattern = '^(.-)' .. delimiter
+         local before = string.match(text, pattern)
+         return before or 'unknown'
+      end
+   end
 
 
 function LogParser.analyzeAnnouncements(announcementLines, yearFilter)
    local announcementTypeCount = {}
    local BirthCitizen = {}
+   local slaughters = {}
+   local starvings = {}
+   local animalsBorn = {}
    for _, announcement in ipairs(announcementLines) do
       if yearFilter and tostring(announcement.date.year) ~= tostring(yearFilter) then
          goto continueAnnouncements
@@ -526,8 +694,9 @@ function LogParser.analyzeAnnouncements(announcementLines, yearFilter)
       local typestr = df.announcement_type[announcementType].." "..tostring(announcementType)
       announcementTypeCount[typestr] = (announcementTypeCount[typestr] or 0) + 1
 
+      --parse births
       if announcement.data.type == df.announcement_type.BIRTH_CITIZEN then
-         local mother = Helper.getUnitByName(getNameFromBirthAnnouncement(announcement))
+         local mother = Helper.getUnitByName(getNameFromBirthAnnouncement(announcement,',', true))
          local unit_born = Helper.getUnitByMotherId(mother and mother.id or -1)
          table.insert(BirthCitizen, {
             date = announcement.date,
@@ -535,13 +704,93 @@ function LogParser.analyzeAnnouncements(announcementLines, yearFilter)
             child = Helper.parseUnit(unit_born),
             father_id = unit_born and unit_born.relationship_ids.Father or -1,
          })
+         goto continueAnnouncements
+      end
+      -- parse animal births
+      if announcement.data.type == df.announcement_type.BIRTH_ANIMAL then
+         -- if text does not contain (tame) continue
+         if not string.find(announcement.data.text, "%(tame%)") then
+            --goto continueAnnouncements
+         end
+         local mother = getNameFromBirthAnnouncement(announcement,' has given birth to a ', true)
+         local animal_born = getNameFromBirthAnnouncement(announcement,' has given birth to a ', false)
+         table.insert(animalsBorn, {
+            date = announcement.date,
+            mother=mother or "unknown",
+            child = Helper.removeStringFromString(animal_born, "%.") or "unknown"
+         })
+         goto continueAnnouncements
+      end
+
+      --parse pet deats (slaughters and starvations)
+      if announcement.data.type == df.announcement_type.PET_DEATH then
+         if string.find(announcement.data.text, " has been slaughtered.") then
+            local name = string.match(announcement.data.text, "^(.-) has been slaughtered.")
+            name = Helper.removeStringFromString(name, " %(Tame%)")
+            name = Helper.removeStringFromString(name, "The ")
+            name = Helper.removeStringFromString(name, "Stray ")
+            
+            table.insert(slaughters, {
+               date = announcement.date,
+               name = name or announcement.data.text
+            })
+            goto continueAnnouncements
+         end
+         
+         if string.find(announcement.data.text, " has been found, starved to death.") then
+            local name = string.match(announcement.data.text, "^(.-) has been found, starved to death.")
+            name = Helper.removeStringFromString(name, " %(Tame%)")
+            name = Helper.removeStringFromString(name, "The ")
+            name = Helper.removeStringFromString(name, "Stray ")
+
+            table.insert(starvings, {
+               date = announcement.date,
+               name = name or announcement.data.text
+            })
+            goto continueAnnouncements
+         end
       end
 
       ::continueAnnouncements::
    end
+
+   --animalCounter per race
+   local animalBirthCountByRace = {}
+   for _, animal in ipairs(animalsBorn) do
+      local race = animal.child
+      if race then
+         animalBirthCountByRace[race] = (animalBirthCountByRace[race] or 0) + 1
+      end
+   end
+
+
+
+    --parse slaughters per race
+    local slaughtersByRace = {}
+      for _, slaughter in ipairs(slaughters) do
+         local race = slaughter.name
+         if race then
+            slaughtersByRace[race] = (slaughtersByRace[race] or 0) + 1
+         end
+      end
+
+      --starvarion deaths per race
+      local starvationsByRace = {}
+      for _, starvation in ipairs(starvings) do
+         local race = starvation.name
+         if race then
+            starvationsByRace[race] = (starvationsByRace[race] or 0) + 1
+         end
+      end
+
    return {
       AnnouncementTypeCount = announcementTypeCount,
-      BirthCitizen = BirthCitizen
+      BirthCitizen = BirthCitizen,
+      Slaughters = slaughters,
+      AnimalsBorn = animalsBorn,
+      AnimalBirthCountByRace = animalBirthCountByRace,
+      SlaughterCountByRace = slaughtersByRace,
+      StarvationCountByRace = starvationsByRace
    }
 end
 
@@ -562,51 +811,68 @@ local parsedLists = LogParser.parseAll()
 local itemInfo = LogParser.analyzeItems(parsedLists.ItemCreated, 103)
 local jobInfo = LogParser.analyzeJobs(parsedLists.JobCompleted, 103)
 
-if false then
-   LogParser.printItemCreatedInformation(itemInfo)
-   LogParser.printJobInfo(jobInfo)
-   print("Citizens born in year 102: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 102).NewCitizens)
-   print("Citizens born in year 103: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 103).NewCitizens)
-   print("Citizens born in year 104: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 104).NewCitizens)
-   print("Citizens born in year 105: ".. #LogParser.analyzeCitizens(parsedLists.Citizens, 105).NewCitizens)
 
-   print("Dwarf deaths in year 102: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 102).DwarfDeaths)
-   print("Dwarf deaths in year 103: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 103).DwarfDeaths)
-   print("Dwarf deaths in year 104: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 104).DwarfDeaths)
-   print("Dwarf deaths in year 105: ".. #LogParser.analyzeUnitDeaths(parsedLists.UnitDeath, 105).DwarfDeaths)
 
-   local deaths = LogParser.analyzeUnitDeaths(parsedLists.UnitDeath,104)
-   for _, death in ipairs(deaths.DwarfDeaths) do
-      print("Dwarf death in year 104: " .. death.name .. " cause: " .. death.death_cause)
-   end
-
-   for announcementType, count in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).AnnouncementTypeCount) do
-      if announcementType:find("BIRTH") then
-      else
-         goto continue
-      end
-      print("Announcement type: " .. announcementType .. " count: " .. count)
-      ::continue::
-   end
-
-   for id, birth in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).BirthCitizen) do
-      local motherName = birth.mother_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.mother_id).name) or "unknown"
-      local fatherName = birth.father_id ~= -1 and dfhack.translation.translateName(Helper.getUnitById(birth.father_id).name) or "unknown"
-      print(birth.date.day.."-"..birth.date.month.."-"..birth.date.year.." Birth announcement: " .. motherName .. " gave birth to " .. birth.child.name .." father ".. fatherName)
-   end
-
+for id, slaughter in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).Slaughters) do
+   print(slaughter.date.day.."-"..slaughter.date.month.."-"..slaughter.date.year.." Slaughter announcement: " .. slaughter.name)
 end
 
-   local analysis = LogParser.analyzeAnualCitizenList(parsedLists.AllCitizensAnnualLog, nil)
-   print("number of anual citizen logs: " .. #parsedLists.AllCitizensAnnualLog)
-   print(" Marriages: " .. #analysis.Marriages)
-   for _, marriage in ipairs(analysis.Marriages) do
-      local unit1Name = marriage.unit1.name
-      local unit2Name = marriage.unit2.name
-      print("Year " .. marriage.year .. " Marriage: " .. unit1Name .. " is married to " .. unit2Name)
-      Helper.printTable(marriage)
-      break
-   end
+for id, animal in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).AnimalsBorn) do
+   print(animal.date.day.."-"..animal.date.month.."-"..animal.date.year.." Animal birth announcement: " .. animal.child .. " born to " .. animal.mother)
+end
+
+-- animal and pet deaths
+local deathSummary = LogParser.analyzeUnitDeaths(parsedLists.UnitDeath)
+print("\nUnit Death Summary:")
+local animalDeaths = deathSummary.TameAnimalDeaths
+local petDeaths = deathSummary.PetDeaths
+for _, death in ipairs(animalDeaths) do
+   print("Tame animal death: " .. death.data.victim.race .. " on " .. death.date.day .. "-" .. death.date.month .. "-" .. death.date.year)
+end
+for _, death in ipairs(petDeaths) do
+   print("Pet death: " .. death.data.victim.name .. " a " .. death.data.victim.race .. " on " .. death.date.day .. "-" .. death.date.month .. "-" .. death.date.year)
+end
+
+--print arrival and departure summary of visitors and others
+local summary = LogParser.analyzeVisitorsAndOthers(parsedLists.VisitorsAndOthers)
+print("\nVisitors and Others Arrival and Departure Summary:")
+for _, merchant in ipairs(summary.Merchants) do
+   print("Merchant " .. merchant.data.name .. " first seen: " .. merchant.FirstSeen.year .. "-" .. merchant.FirstSeen.month .. " last seen: " .. merchant.LastSeen.year .. "-" .. merchant.LastSeen.month)
+end
+print("")
+print("")
+for _, guest in ipairs(summary.Guests) do
+   print("Guest " .. guest.data.name .. " first seen: " .. guest.FirstSeen.year .. "-" .. guest.FirstSeen.month .. " last seen: " .. guest.LastSeen.year .. "-" .. guest.LastSeen.month)
+end
+print("")
+print("")
+
+for _, ghost in ipairs(summary.Ghosts) do
+   print("Ghost " .. ghost.data.id .. " first seen: " .. ghost.FirstSeen.year .. "-" .. ghost.FirstSeen.month .. " last seen: " .. ghost.LastSeen.year .. "-" .. ghost.LastSeen.month)
+end
+
+print("")
+print("")
+for _, animal in ipairs(summary.Animals) do
+   print("Animal " .. animal.data.race .. " first seen: " .. animal.FirstSeen.year .. "-" .. animal.FirstSeen.month .. " last seen: " .. animal.LastSeen.year .. "-" .. animal.LastSeen.month)
+end
+
+for _, pet in ipairs(summary.Pets) do
+   print("Pet " .. pet.data.name .." a " .. pet.data.race .. " first seen: " .. pet.FirstSeen.year .. "-" .. pet.FirstSeen.month .. " last seen: " .. pet.LastSeen.year .. "-" .. pet.LastSeen.month)
+end
+
+--list births 
+for id, slaughter in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).AnimalBirthCountByRace) do
+   print("Animal birth count for race " .. id .. ": " .. slaughter)
+end
+--list slaughters
+for id, slaughter in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).SlaughterCountByRace) do
+   print("Slaughter count for race " .. id .. ": " .. slaughter)
+end
+--list starvations
+for id, starvation in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).StarvationCountByRace) do
+   print("Starvation death count for race " .. id .. ": " .. starvation)
+end
 
 
 return LogParser

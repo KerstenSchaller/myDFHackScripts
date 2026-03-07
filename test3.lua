@@ -145,7 +145,7 @@ function createPopulationPageText(year, index)
 		addLinebreak(tokens)
 		for _, citizen in ipairs(citizenChanges.NewCitizens) do
 			local age = citizen.data.citizen.age
-			local color = citizen.data.citizen.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
+			local color = citizen.data.citizen.sex == "male" and COLOR_CYAN or COLOR_LIGHTMAGENTA
 			age = math.floor(age)
 
 			local text = string.format(" a %d years old %s %s joined the fortress", age, citizen.data.citizen.sex, citizen.data.citizen.race)
@@ -165,15 +165,30 @@ function createPopulationPageText(year, index)
 			for _, death in ipairs(unitDeaths.DwarfDeaths) do
 				-- age is a float string with . divider, we want to remove the decimal part for display
 				local age = math.floor(death.data.victim.age)
-				local color = death.data.victim.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
+				local color = death.data.victim.sex == "male" and COLOR_CYAN or COLOR_LIGHTMAGENTA
 				addTokenisedText(tokens,"On "..death.date.day.."-"..death.date.month.."-"..death.date.year, COLOR_WHITE, 8, false)
 				addTokenisedText(tokens, dfhack.utf2df(death.data.victim.name), color, 1, false)
 				addTokenisedText(tokens, string.format(" a %d years old %s %s", age, death.data.victim.sex, death.data.victim.race), COLOR_WHITE, 0, false)
 				addTokenisedText(tokens, DeathHelper.getDeathCauseByString(death.data.death_cause), COLOR_WHITE, 0, true)
+				
+				addTokenisedText(tokens,"killed by ", COLOR_WHITE, 8, false)
+				local killer_name = dfhack.utf2df(death.data.killer.name)
+				local killeRace = death.data.killer.race
+				local killerAge = math.floor(death.data.killer.age)
+				local killerSex = death.data.killer.sex == "male" and "male" or "female"
+
+				local killerText = ""
+				if killer_name ~= "" then 
+					killerText = string.format("%s, a %d years old %s %s,", killer_name, killerAge, killerSex, killeRace)
+				else
+					killerText = string.format("a %d years old %s %s,", killerAge, killerSex, killeRace)
+				end
+				addTokenisedText(tokens, killerText, COLOR_WHITE, 0, true)
+				addLinebreak(tokens)
 				addLinebreak(tokens)
 			end
 		else
-			addTokenisedText(tokens, "No dwarf deaths recorded.", COLOR_MAGENTA, 4, true)
+			addTokenisedText(tokens, "No dwarf deaths recorded.", COLOR_GREEN, 4, true)
 		end
 
 	elseif _index == 3 then
@@ -189,8 +204,10 @@ function createPopulationPageText(year, index)
 				local fatherAge = father and math.floor(dfhack.units.getAge(father)) or "unknown"
 				local motherName = mother  and (dfhack.translation.translateName(mother.name)) or "unknown"
 				local fatherName = father ~= -1 and (dfhack.translation.translateName(father.name)) or "unknown"
+				local genderStr = birth.child.sex == "male" and "boy" or "girl"
 				addTokenisedText(tokens,"On " .. birth.date.day.."-"..birth.date.month.."-"..birth.date.year, COLOR_WHITE, 8, false)
 				addTokenisedText(tokens, birth.child.name, COLOR_GREEN, 1, false)
+				addTokenisedText(tokens, string.format(" a %s %s", birth.child.race,genderStr), COLOR_WHITE, 0, false)
 				addTokenisedText(tokens, " was born to the mother ",COLOR_WHITE, 0, false)
 				addTokenisedText(tokens, motherName, COLOR_LIGHTMAGENTA, 0, false)
 				addTokenisedText(tokens, " (age ".. motherAge ..")", COLOR_WHITE, 0, true)
@@ -201,7 +218,7 @@ function createPopulationPageText(year, index)
 				addLinebreak(tokens)
 			end
 		else
-			addTokenisedText(tokens, "No births recorded.", COLOR_CYAN, 4, true)
+			addTokenisedText(tokens, "No births recorded.", COLOR_WHITE, 4, true)
 		end
 
 	elseif _index == 4 then
@@ -209,10 +226,6 @@ function createPopulationPageText(year, index)
 		local currentMarriages = marriages
 		local count = 0
 		if #currentMarriages > 0 then
-			if year == nil then
-				addTokenisedText(tokens, string.format("%d marriages were recorded in year %s.", #currentMarriages, year), COLOR_WHITE, 4, true)
-			end
-
 			addLinebreak(tokens)
 			for _, marriage in ipairs(currentMarriages) do
 				if year ~= tostring(marriage.year) and year ~= nil then
@@ -221,8 +234,8 @@ function createPopulationPageText(year, index)
 				count = count + 1
 				local unit1 = marriage.unit1
 				local unit2 = marriage.unit2
-				local color_unit1 = unit1.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
-				local color_unit2 = unit2.sex == "male" and COLOR_CYAN or COLOR_MAGENTA
+				local color_unit1 = unit1.sex == "male" and COLOR_CYAN or COLOR_LIGHTMAGENTA
+				local color_unit2 = unit2.sex == "male" and COLOR_CYAN or COLOR_LIGHTMAGENTA
 				local unit1Name = unit1.name
 				local unit2Name = unit2.name
 				addTokenisedText(tokens,"In " .. marriage.year, COLOR_WHITE, 8, false)
@@ -235,11 +248,89 @@ function createPopulationPageText(year, index)
 				::continueMarriage::
 			end
 			if count == 0 then
-				addTokenisedText(tokens, "No marriages recorded in year " .. year .. ".", COLOR_MAGENTA, 4, true)
+				addTokenisedText(tokens, "No marriages recorded in year " .. year .. ".", COLOR_WHITE, 4, true)
 			end
 
 		end
+	
+	elseif _index == 5 then --animals
+		local analyzedAnnouncements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
+		local births = analyzedAnnouncements.AnimalBirthCountByRace
+		local slaughters = analyzedAnnouncements.SlaughterCountByRace
+		local starvations = analyzedAnnouncements.StarvationCountByRace
+		
+		
+		-- list animal births by year,
+			addTokenisedText(tokens,"Animal births:", COLOR_WHITE, 4, true)
+			for race, count in pairs(births) do
+				local text = string.format("%d %s were born.", count, race)
+				addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+			end
+			addLinebreak(tokens)
+		-- list slaughters
+			addTokenisedText(tokens,"Slaughtered animals:", COLOR_WHITE, 4, true)
+			for race, count in pairs(slaughters) do
+				local text = string.format("%d %s were slaughtered.", count, race)
+				addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+			end
+			addLinebreak(tokens)
+		-- list starvations
+			addTokenisedText(tokens,"Starved animals:", COLOR_WHITE, 4, true)
+			for race, count in pairs(starvations) do
+				local text = string.format("%d %s starved to death.", count, race)
+				addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+			end
+			addLinebreak(tokens)
+			local tameAnimalDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year).TameAnimalDeaths
+			addTokenisedText(tokens,"Animal deaths:", COLOR_WHITE, 4, true)
+			for _, death in ipairs(tameAnimalDeaths) do
+				local age = math.floor(death.data.victim.age)
+				local race = death.data.victim.race
+				local cause = DeathHelper.getDeathCauseByString(death.data.death_cause)
+				local text = string.format("A %d years old %s %s", age, race, cause)
+				addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+				------
+				addTokenisedText(tokens,"killed by ", COLOR_WHITE, 8, false)
+				local killer_name = dfhack.utf2df(death.data.killer.name)
+				local killeRace = death.data.killer.race
+				local killerAge = math.floor(death.data.killer.age)
+				local killerSex = death.data.killer.sex == "male" and "male" or "female"
+				local killerText = ""
+				if killer_name ~= "" then 
+					killerText = string.format("%s, a %d years old %s %s,", killer_name, killerAge, killerSex, killeRace)
+				else
+					killerText = string.format("a %d years old %s %s,", killerAge, killerSex, killeRace)
+				end
+				addTokenisedText(tokens, killerText, COLOR_WHITE, 0, true)
+				addLinebreak(tokens)
+			end
 
+	elseif _index == 6 then --pets
+		local petDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year).PetDeaths
+		addTokenisedText(tokens,"Pet deaths:", COLOR_WHITE, 4, true)
+		for _, death in ipairs(petDeaths) do
+			local age = math.floor(death.data.victim.age)
+			local race = death.data.victim.race
+			local name = dfhack.utf2df(death.data.victim.name)
+			local cause = DeathHelper.getDeathCauseByString(death.data.death_cause)
+			local text = string.format("%s, a %d years old %s %s,", name, age, race, cause)
+			addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
+			------
+			addTokenisedText(tokens,"killed by ", COLOR_WHITE, 8, false)
+			local killer_name = dfhack.utf2df(death.data.killer.name)
+			local killeRace = death.data.killer.race
+			local killerAge = math.floor(death.data.killer.age)
+			local killerSex = death.data.killer.sex == "male" and "male" or "female"
+
+			local killerText = ""
+			if killer_name ~= "" then 
+				killerText = string.format("%s, a %d years old %s %s,", killer_name, killerAge, killerSex, killeRace)
+			else
+				killerText = string.format("a %d years old %s %s,", killerAge, killerSex, killeRace)
+			end
+			addTokenisedText(tokens, killerText, COLOR_WHITE, 0, true)
+			addLinebreak(tokens)
+		end
 	end
 
 	return tokens
