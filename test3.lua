@@ -48,7 +48,13 @@ for i = 1, 100 do
 end
 
 
-
+	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens)
+	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement)
+	local anualLogs = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog)
+	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath)
+	local itemInfo = LogParser.analyzeItems(parsedLogs.ItemCreated)
+	local jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted)
+	local jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted)
 
 function addTokenisedText(tokens, text, fgColor, gap, setLineBreak)
 	local token = {
@@ -75,34 +81,24 @@ function createOverviewPageText(year)
 	local tokens = {}
 	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
 	addLinebreak(tokens)
+	
+
+
 
 	-- new citizens
-	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
 	local str1=string.format("The fortress gained %d new citizens.", #citizenChanges.NewCitizens)
 	addTokenisedText(tokens, str1, COLOR_GREEN, 4, true)
 	addLinebreak(tokens)
-
-	
 	--list births
-	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
 	local str3=string.format("There were %d births recorded.", #announcements.BirthCitizen)
 	addTokenisedText(tokens, str3, COLOR_GREEN, 4, true)
 	addLinebreak(tokens)
-	
-	--list marriages
-	local marriages = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog).Marriages
-	local str4=string.format("There were %d marriages recorded.", #marriages)
-	addTokenisedText(tokens, str4, COLOR_GREEN, 4, true)
-	addLinebreak(tokens)
-	
 	-- list deaths
-	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
 	local str2=string.format("The dwarves lost %d of their kind.", #unitDeaths.DwarfDeaths)
 	addTokenisedText(tokens, str2, COLOR_MAGENTA, 4, true)
 	addLinebreak(tokens)
 
 	--list item info
-	local itemInfo = LogParser.analyzeItems(parsedLogs.ItemCreated, year)
 	local str3=string.format("The dwarves created %d items,", #itemInfo.AllItems)
 	addTokenisedText(tokens, str3, COLOR_YELLOW, 4, true)
 	local str4=string.format("of which %d were masterwork and %d were artifacts.", itemInfo.MasterworkCount, #itemInfo.Artifacts)
@@ -110,13 +106,19 @@ function createOverviewPageText(year)
 	addLinebreak(tokens)
 
 	--list job info
-	local jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted, year)
-	local str5=string.format("The dwarves completed %d jobs.", #jobInfos.TotalJobs)
+	local str5=string.format("The dwarves completed %d jobs,", #jobInfos.TotalJobs)
 	addTokenisedText(tokens, str5, COLOR_CYAN, 4, true)
 
 	--list digging info
-	local str6=string.format("Of which %d were digging jobs.", jobInfos.DiggingCount)
+	local str6=string.format("of which %d were digging jobs.", jobInfos.DiggingCount)
 	addTokenisedText(tokens, str6, COLOR_CYAN, 4, true)
+	addLinebreak(tokens)
+
+	--list marriages and divorces
+	local marriages = anualLogs.Marriages
+	local divorces = anualLogs.Divorces
+	local str7=string.format("There were %d marriages and %d divorces recorded.", #marriages, #divorces)
+	addTokenisedText(tokens, str7, COLOR_GREEN, 4, true)
 
 
 	return tokens
@@ -133,10 +135,7 @@ function createPopulationPageText(year, index)
 	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
 	addLinebreak(tokens)
 
-	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
-	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
-	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
-	local anualLogs = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog)
+
 	local marriages = anualLogs.Marriages
 	local divorces = anualLogs.Divorces
 
@@ -170,7 +169,7 @@ function createPopulationPageText(year, index)
 				local color = death.data.victim.sex == "male" and COLOR_CYAN or COLOR_LIGHTMAGENTA
 				addTokenisedText(tokens,"On "..death.date.day.."-"..death.date.month.."-"..death.date.year, COLOR_WHITE, 8, false)
 				addTokenisedText(tokens, dfhack.utf2df(death.data.victim.name), color, 1, false)
-				addTokenisedText(tokens, string.format(" a %d years old %s %s", age, death.data.victim.sex, death.data.victim.race), COLOR_WHITE, 0, false)
+				addTokenisedText(tokens, string.format(" a %d years old %s %s,", age, death.data.victim.sex, death.data.victim.race), COLOR_WHITE, 0, false)
 				addTokenisedText(tokens, DeathHelper.getDeathCauseByString(death.data.death_cause), COLOR_WHITE, 0, true)
 				
 				addTokenisedText(tokens,"killed by ", COLOR_WHITE, 8, false)
@@ -181,9 +180,9 @@ function createPopulationPageText(year, index)
 
 				local killerText = ""
 				if killer_name ~= "" then 
-					killerText = string.format("%s, a %d years old %s %s,", killer_name, killerAge, killerSex, killeRace)
+					killerText = string.format("%s, a %d years old %s %s.", killer_name, killerAge, killerSex, killeRace)
 				else
-					killerText = string.format("a %d years old %s %s,", killerAge, killerSex, killeRace)
+					killerText = string.format("a %d years old %s %s.", killerAge, killerSex, killeRace)
 				end
 				addTokenisedText(tokens, killerText, COLOR_WHITE, 0, true)
 				addLinebreak(tokens)
@@ -302,7 +301,7 @@ function createPopulationPageText(year, index)
 				local age = math.floor(death.data.victim.age)
 				local race = death.data.victim.race
 				local cause = DeathHelper.getDeathCauseByString(death.data.death_cause)
-				local text = string.format("A %d years old %s %s", age, race, cause)
+				local text = string.format("A %d years old %s %s,", age, race, cause)
 				addTokenisedText(tokens, text, COLOR_WHITE, 8, true)
 				------
 				addTokenisedText(tokens,"killed by ", COLOR_WHITE, 8, false)
@@ -312,9 +311,9 @@ function createPopulationPageText(year, index)
 				local killerSex = death.data.killer.sex == "male" and "male" or "female"
 				local killerText = ""
 				if killer_name ~= "" then 
-					killerText = string.format("%s, a %d years old %s %s,", killer_name, killerAge, killerSex, killeRace)
+					killerText = string.format("%s, a %d years old %s %s.", killer_name, killerAge, killerSex, killeRace)
 				else
-					killerText = string.format("a %d years old %s %s,", killerAge, killerSex, killeRace)
+					killerText = string.format("a %d years old %s %s.", killerAge, killerSex, killeRace)
 				end
 				addTokenisedText(tokens, killerText, COLOR_WHITE, 0, true)
 				addLinebreak(tokens)
@@ -339,9 +338,9 @@ function createPopulationPageText(year, index)
 
 			local killerText = ""
 			if killer_name ~= "" then 
-				killerText = string.format("%s, a %d years old %s %s,", killer_name, killerAge, killerSex, killeRace)
+				killerText = string.format("%s, a %d years old %s %s.", killer_name, killerAge, killerSex, killeRace)
 			else
-				killerText = string.format("a %d years old %s %s,", killerAge, killerSex, killeRace)
+				killerText = string.format("a %d years old %s %s.", killerAge, killerSex, killeRace)
 			end
 			addTokenisedText(tokens, killerText, COLOR_WHITE, 0, true)
 			addLinebreak(tokens)
@@ -432,7 +431,7 @@ function createLaborPageText(year)
 	addTokenisedText(tokens, title, COLOR_WHITE, 0, true)
 	addLinebreak(tokens)
 
-	local jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted, year)
+	
 	addTokenisedText(tokens, "Most common job types", COLOR_WHITE, 4, true)
 	for _, pair in ipairs(LogParser.getTopN(jobInfos.JobTypeCount, 10)) do
 		local jobType, count = pair[1], pair[2]
@@ -718,6 +717,15 @@ function updatePanels(year)
 	if year == "All" then
 		year = nil
 	end
+
+	citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
+	announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
+	anualLogs = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog)
+	unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
+	itemInfo = LogParser.analyzeItems(parsedLogs.ItemCreated, year)
+	jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted, year)
+	jobInfos = LogParser.analyzeJobs(parsedLogs.JobCompleted, year)
+
 	OverviewPage.subviews.overviewLabel:setText(createOverviewPageText(year))
 	PopulationPage.subviews.populationLabel:setText(createPopulationPageText(year, popPageIndex))
 	EconomyPage.subviews.economyLabel:setText(createEconomyPageText(year))
@@ -796,6 +804,7 @@ end
 -- Show only TestScreen1 initially
 --view1 = view1 and view1:raise() or TestScreen1{}:show()
 view = view and view:raise() or StatScreen{}:show()
+updatePanels("All")
 
 
 ::EOF::
