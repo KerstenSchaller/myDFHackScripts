@@ -337,14 +337,15 @@ function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
       return marriages
    end
 
-   -- Find marriages by comparing subsequent logs
+   -- Find marriages and divorces by comparing subsequent logs
    local marriages = {}
+   local divorces = {}
    for i = 2, #sortedYears do
       local prevLog = logsByYear[sortedYears[i-1]]
       local currLog = logsByYear[sortedYears[i]]
       local prevMarriages = getMarriagesMap(prevLog)
       local currMarriages = getMarriagesMap(currLog)
-      -- For each unit in curr, if they have a spouse now but not before, it's a new marriage
+      -- Marriages: For each unit in curr, if they have a spouse now but not before, it's a new marriage
       for unit_id, spouse_id in pairs(currMarriages) do
          if (not prevMarriages[unit_id] or prevMarriages[unit_id] ~= spouse_id) and spouse_id ~= -1 then
             -- Only add if the spouse reciprocates
@@ -353,6 +354,23 @@ function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
                local key = tostring(math.min(unit_id, spouse_id)) .. '-' .. tostring(math.max(unit_id, spouse_id))
                if not marriages[key] then
                   marriages[key] = {
+                     year = sortedYears[i],
+                     unit1 = unit_id,
+                     unit2 = spouse_id,
+                  }
+               end
+            end
+         end
+      end
+      -- Divorces: For each unit in prev, if they had a spouse before but not now, it's a divorce
+      for unit_id, spouse_id in pairs(prevMarriages) do
+         if spouse_id ~= -1 and (not currMarriages[unit_id] or currMarriages[unit_id] ~= spouse_id) then
+            -- Only add if the spouse reciprocates in prev, and both are now not married to each other
+            if prevMarriages[spouse_id] == unit_id and (not currMarriages[spouse_id] or currMarriages[spouse_id] ~= unit_id) then
+               local key = tostring(math.min(unit_id, spouse_id)) .. '-' .. tostring(math.max(unit_id, spouse_id))
+               if not divorces[key] then
+                  print("Found divorce between " .. unit_id .. " and " .. spouse_id .. " in year " .. sortedYears[i])
+                  divorces[key] = {
                      year = sortedYears[i],
                      unit1 = unit_id,
                      unit2 = spouse_id,
@@ -376,6 +394,7 @@ function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
             local currLog = months[monthList[i]]
             local prevMarriages = getMarriagesMap(prevLog)
             local currMarriages = getMarriagesMap(currLog)
+            -- Marriages
             for unit_id, spouse_id in pairs(currMarriages) do
                if (not prevMarriages[unit_id] or prevMarriages[unit_id] ~= spouse_id) and spouse_id ~= -1 then
                   if currMarriages[spouse_id] == unit_id then
@@ -391,12 +410,25 @@ function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
                   end
                end
             end
+            -- Divorces
+            for unit_id, spouse_id in pairs(prevMarriages) do
+               if spouse_id ~= -1 and (not currMarriages[unit_id] or currMarriages[unit_id] ~= spouse_id) then
+                  if prevMarriages[spouse_id] == unit_id and (not currMarriages[spouse_id] or currMarriages[spouse_id] ~= unit_id) then
+                     local key = tostring(math.min(unit_id, spouse_id)) .. '-' .. tostring(math.max(unit_id, spouse_id))
+                     if not divorces[key] then
+                        divorces[key] = {
+                           year = onlyYear,
+                           month = monthList[i],
+                           unit1 = unit_id,
+                           unit2 = spouse_id,
+                        }
+                     end
+                  end
+               end
+            end
          end
       end
    end
-
-
-
 
    -- Convert marriages to list
    local marriageList = {}
@@ -409,11 +441,26 @@ function LogParser.analyzeAnualCitizenList(allCitizensAnnualLog)
          unit1 = unit1,
          unit2 = unit2
       }
-       table.insert(marriageList, updatedMarriage) 
+      table.insert(marriageList, updatedMarriage)
+   end
+
+   -- Convert divorces to list
+   local divorceList = {}
+   for _, d in pairs(divorces) do
+      local unit1 = Helper.parseUnit(Helper.getUnitById(d.unit1))
+      local unit2 = Helper.parseUnit(Helper.getUnitById(d.unit2))
+      local updatedDivorce = {
+         year = d.year,
+         month = d.month or 0,
+         unit1 = unit1,
+         unit2 = unit2
+      }
+      table.insert(divorceList, updatedDivorce)
    end
 
    return {
-      Marriages = marriageList
+      Marriages = marriageList,
+      Divorces = divorceList
    }
 end
 
@@ -872,6 +919,17 @@ end
 --list starvations
 for id, starvation in pairs(LogParser.analyzeAnnouncements(parsedLists.Announcement).StarvationCountByRace) do
    print("Starvation death count for race " .. id .. ": " .. starvation)
+end
+
+--divorves
+local marriageInfo = LogParser.analyzeAnualCitizenList(parsedLists.AllCitizensAnnualLog)
+print("\nMarriages:")
+for _, marriage in ipairs(marriageInfo.Marriages) do
+   print("Marriage in year " .. marriage.year .. ": " .. marriage.unit1.name .. " and " .. marriage.unit2.name)
+end
+
+for _, divorce in ipairs(marriageInfo.Divorces) do
+   print("Divorce in year " .. divorce.year .. ": " .. divorce.unit1.name .. " and " .. divorce.unit2.name)
 end
 
 

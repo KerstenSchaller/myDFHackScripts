@@ -136,7 +136,9 @@ function createPopulationPageText(year, index)
 	local citizenChanges = LogParser.analyzeCitizens(parsedLogs.Citizens, year)
 	local unitDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year)
 	local announcements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
-	local marriages = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog).Marriages
+	local anualLogs = LogParser.analyzeAnualCitizenList(parsedLogs.AllCitizensAnnualLog)
+	local marriages = anualLogs.Marriages
+	local divorces = anualLogs.Divorces
 
 	if _index == 1 then
 		
@@ -221,9 +223,21 @@ function createPopulationPageText(year, index)
 			addTokenisedText(tokens, "No births recorded.", COLOR_WHITE, 4, true)
 		end
 
-	elseif _index == 4 then
+	elseif _index == 4 or _index == 5 then --marriages and divorces
 		-- list marriages
-		local currentMarriages = marriages
+		local currentMarriages = nil
+		local typeStr = ""
+		local typeStr2 = ""
+		if _index == 4 then
+			currentMarriages = marriages
+			typeStr = "married"
+			typeStr2 = "marriages"
+		else
+			currentMarriages = divorces
+			typeStr = "divorced"
+			typeStr2 = "divorces"
+		end
+
 		local count = 0
 		if #currentMarriages > 0 then
 			addLinebreak(tokens)
@@ -241,19 +255,20 @@ function createPopulationPageText(year, index)
 				addTokenisedText(tokens,"In " .. marriage.year, COLOR_WHITE, 8, false)
 				addTokenisedText(tokens, unit1Name, color_unit1, 1, false)
 				addTokenisedText(tokens,",a " .. math.floor(unit1.age) .. " years old ".. unit1.sex .. " " .. unit1.race, COLOR_WHITE, 0, false)
-				addTokenisedText(tokens, " married ", COLOR_WHITE, 0, false)
+				addTokenisedText(tokens, " " .. typeStr .. " ", COLOR_WHITE, 0, false)
 				addTokenisedText(tokens, unit2Name, color_unit2, 0, true)
 				addTokenisedText(tokens,",a " .. math.floor(unit2.age) .. " years old ".. unit2.sex .. " " .. unit2.race, COLOR_WHITE, 8, true)
 				addLinebreak(tokens)
 				::continueMarriage::
 			end
 			if count == 0 then
-				addTokenisedText(tokens, "No marriages recorded in year " .. year .. ".", COLOR_WHITE, 4, true)
+				addTokenisedText(tokens, "No " .. typeStr2 .. " recorded in year " .. year .. ".", COLOR_WHITE, 4, true)
 			end
 
 		end
-	
-	elseif _index == 5 then --animals
+
+		
+	elseif _index == 6 then --animals
 		local analyzedAnnouncements = LogParser.analyzeAnnouncements(parsedLogs.Announcement, year)
 		local births = analyzedAnnouncements.AnimalBirthCountByRace
 		local slaughters = analyzedAnnouncements.SlaughterCountByRace
@@ -305,7 +320,7 @@ function createPopulationPageText(year, index)
 				addLinebreak(tokens)
 			end
 
-	elseif _index == 6 then --pets
+	elseif _index == 7 then --pets
 		local petDeaths = LogParser.analyzeUnitDeaths(parsedLogs.UnitDeath, year).PetDeaths
 		addTokenisedText(tokens,"Pet deaths:", COLOR_WHITE, 4, true)
 		for _, death in ipairs(petDeaths) do
@@ -516,6 +531,7 @@ local JoinedButtonText = "Citizens Joined"
 local DiedButtonText = "Citizens Died"
 local BornButtonText = "Citizens Born"
 local MarriageButtonText = "Marriages"
+local DivorceButtonText = "Divorces"
 local AnimalButtonText = "Animals"
 local PetButtonText = "Pets"
 local lIndex = 0
@@ -526,7 +542,7 @@ local JoinedButton = widgets.TextButton{
 							label=JoinedButtonText,
 							on_activate=function() 
 								popPageIndex = 1
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 1)) 
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -539,7 +555,7 @@ local DiedButton = widgets.TextButton{
 							frame={l=lIndex,t=0,w=#DiedButtonText+2,h=1},
 							on_activate=function() 
 								popPageIndex = 2
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 2)) 
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -553,7 +569,7 @@ local BornButton = widgets.TextButton{
 							label=BornButtonText,
 							on_activate=function() 
 								popPageIndex = 3
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 3)) 
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -566,7 +582,7 @@ local MarriageButton = widgets.TextButton{
 							label=MarriageButtonText,
 							on_activate=function() 
 								popPageIndex = 4
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 4)) 
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -574,13 +590,26 @@ local MarriageButton = widgets.TextButton{
 
 lIndex = lIndex + #MarriageButtonText + 3
 
+local DivorceButton = widgets.TextButton{
+							view_id='Divorces',
+							frame={l=lIndex,t=0,w=#DivorceButtonText+2,h=1},
+							label=DivorceButtonText,
+							on_activate=function() 
+								popPageIndex = 5
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
+								self:updateLayout()
+							end,
+							enabled=true,
+						}
+lIndex = lIndex + #DivorceButtonText + 3
+
 local AnimalButton = widgets.TextButton{
 							view_id='Animals',
 							frame={l=lIndex,t=0,w=#AnimalButtonText+2,h=1},
 							label=AnimalButtonText,
 							on_activate=function() 
-								popPageIndex = 5
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 5)) 
+								popPageIndex = 6
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
 								self:updateLayout()
 							end,
 							enabled=true,
@@ -593,8 +622,8 @@ local PetButton = widgets.TextButton{
 							frame={l=lIndex,t=0,w=#PetButtonText+2,h=1},
 							label=PetButtonText,
 							on_activate=function() 
-								popPageIndex = 6
-								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, 6)) 
+								popPageIndex = 7
+								PopulationPage.subviews.populationLabel:setText(createPopulationPageText(nil, popPageIndex)) 
 								dfhack.gui.showAnnouncement("Showing pets", COLOR_CYAN)
 								self:updateLayout()
 							end,
@@ -602,7 +631,7 @@ local PetButton = widgets.TextButton{
 						}
 
 
-PopulationPage:addviews{JoinedButton, DiedButton, BornButton,MarriageButton, AnimalButton, PetButton}
+PopulationPage:addviews{JoinedButton, DiedButton, BornButton,MarriageButton, DivorceButton, AnimalButton, PetButton}
 
 local EconomyPage = widgets.Panel{
 					frame={t=0,l=0},
